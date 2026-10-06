@@ -62,6 +62,31 @@ class DataConfig(BaseModel):
     portfolio_required_fields: list[str]
 
 
+class CatastropheConfig(BaseModel):
+    """Catastrophe simulation parameters."""
+    event_catalogue_path: str = "data/demo/events.csv"
+    footprints_path: str = "data/demo/footprints.json"
+    default_frequency: float = Field(default=1.0, ge=0)
+    simulation_years: int = Field(default=10000, ge=1)
+    seed: int = 482913
+    coordinate_reference_system: str = "EPSG:4326"
+
+
+class VulnerabilityConfig(BaseModel):
+    """Vulnerability curve configuration."""
+    interpolation: str = "linear"
+    default_curve: str = "prototype"
+    curve_path: str = "data/demo/vulnerability_curves.csv"
+
+
+class StorageConfig(BaseModel):
+    """Output paths for processed catastrophe datasets."""
+    event_output_path: str = "data/processed"
+    hazard_output_path: str = "data/processed"
+    elt_output_path: str = "data/processed"
+    ylt_output_path: str = "data/processed"
+
+
 class FLOODTAILConfig(BaseModel):
     """Top-level configuration aggregating all sections."""
     project: ProjectConfig
@@ -71,6 +96,10 @@ class FLOODTAILConfig(BaseModel):
     model: ModelConfig
     governance: GovernanceConfig
     data: DataConfig
+    catastrophe: Optional[CatastropheConfig] = Field(default_factory=CatastropheConfig)
+    vulnerability: Optional[VulnerabilityConfig] = Field(default_factory=VulnerabilityConfig)
+    storage: Optional[StorageConfig] = Field(default_factory=StorageConfig)
+
 
 
 # ---------------------------------------------------------------------------

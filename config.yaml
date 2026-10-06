@@ -45,3 +45,23 @@ data:
     - longitude
     - insured_value
     - property_type
+
+catastrophe:
+  event_catalogue_path: "data/demo/events.csv"
+  footprints_path: "data/demo/footprints.json"
+  default_frequency: 1.0
+  simulation_years: 10000
+  seed: 482913
+  coordinate_reference_system: "EPSG:4326"
+
+vulnerability:
+  interpolation: "linear"
+  default_curve: "prototype"
+  curve_path: "data/demo/vulnerability_curves.csv"
+
+storage:
+  event_output_path: "data/processed"
+  hazard_output_path: "data/processed"
+  elt_output_path: "data/processed"
+  ylt_output_path: "data/processed"
+

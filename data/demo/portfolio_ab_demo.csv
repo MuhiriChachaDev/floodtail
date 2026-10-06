@@ -1,0 +1,23 @@
+policy_id,latitude,longitude,insured_value,property_type,construction_class,region
+POL_DEMO_A,-1.286389,36.817223,25000000.0,Commercial,Reinforced Concrete,Nairobi
+POL_DEMO_B,-1.330000,36.700000,25000000.0,Commercial,Reinforced Concrete,Nairobi
+POL_NBI_001,-1.285000,36.820000,12000000.0,Residential,Masonry,Nairobi
+POL_NBI_002,-1.290000,36.815000,18500000.0,Commercial,Steel Frame,Nairobi
+POL_NBI_003,-1.275000,36.835000,8500000.0,Residential,Reinforced Concrete,Nairobi
+POL_NBI_004,-1.310000,36.840000,35000000.0,Industrial,Steel Frame,Nairobi
+POL_NBI_005,-1.260000,36.800000,15000000.0,Residential,Masonry,Nairobi
+POL_MBA_001,-4.043477,39.668206,22000000.0,Commercial,Reinforced Concrete,Mombasa
+POL_MBA_002,-4.035000,39.670000,14000000.0,Residential,Masonry,Mombasa
+POL_MBA_003,-4.050000,39.660000,45000000.0,Industrial,Steel Frame,Mombasa
+POL_MBA_004,-4.020000,39.680000,9500000.0,Residential,Reinforced Concrete,Mombasa
+POL_KSM_001,-0.091702,34.767956,16000000.0,Commercial,Reinforced Concrete,Kisumu
+POL_KSM_002,-0.100000,34.750000,11000000.0,Residential,Masonry,Kisumu
+POL_KSM_003,-0.110000,34.770000,28000000.0,Industrial,Steel Frame,Kisumu
+POL_NKU_001,-0.303099,36.080025,13500000.0,Commercial,Masonry,Nakuru
+POL_NKU_002,-0.290000,36.070000,7500000.0,Residential,Timber Frame,Nakuru
+POL_ELD_001,0.514277,35.269780,18000000.0,Commercial,Reinforced Concrete,Eldoret
+POL_ELD_002,0.520000,35.280000,9000000.0,Residential,Masonry,Eldoret
+POL_GAR_001,-0.453200,39.646000,10500000.0,Commercial,Masonry,Garissa
+POL_GAR_002,-0.460000,39.650000,6000000.0,Residential,Timber Frame,Garissa
+POL_TANA_001,-0.450000,39.650000,8000000.0,Agricultural,Masonry,Tana River
+POL_TANA_002,-1.500000,40.100000,12000000.0,Agricultural,Timber Frame,Tana River

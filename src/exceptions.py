@@ -87,3 +87,45 @@ class GovernanceError(FloodtailError):
         - Audit trail incomplete
         - Unauthorized override attempted
     """
+
+
+class DatabaseError(FloodtailError):
+    """Raised when a database operation fails.
+
+    Examples:
+        - SQLite connection failure
+        - Table creation failure
+        - Query execution error
+    """
+
+
+class IngestionError(FloodtailError):
+    """Raised when file ingestion fails.
+
+    Examples:
+        - Unsupported file format
+        - Empty file
+        - File exceeds size limit
+        - File read failure
+    """
+
+
+class EventSetError(FloodtailError):
+    """Raised when event catalogue loading, validation, or simulation fails."""
+
+
+class HazardModelError(HazardInputError):
+    """Raised when spatial hazard intersection or depth calculation fails."""
+
+
+class VulnerabilityModelError(VulnerabilityError):
+    """Raised when vulnerability curve lookup, interpolation, or monotonicity fails."""
+
+
+class LossCalculationError(ModelCalculationError):
+    """Raised when financial loss computation or policy terms evaluation fails."""
+
+
+class ValidationError(FloodtailError):
+    """Raised when general underwriting, decision, or audit parameter validation fails."""
+

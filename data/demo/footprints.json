@@ -1,0 +1,162 @@
+[
+  {
+    "footprint_id": "FP_NBI_01",
+    "center_lat": -1.286389,
+    "center_lon": 36.817223,
+    "radius_km": 15.0,
+    "base_depth_m": 0.75,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_NBI_02",
+    "center_lat": -1.280000,
+    "center_lon": 36.830000,
+    "radius_km": 20.0,
+    "base_depth_m": 1.20,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_NBI_03",
+    "center_lat": -1.285000,
+    "center_lon": 36.820000,
+    "radius_km": 30.0,
+    "base_depth_m": 1.85,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_NBI_04",
+    "center_lat": -1.290000,
+    "center_lon": 36.815000,
+    "radius_km": 40.0,
+    "base_depth_m": 2.60,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_MBA_01",
+    "center_lat": -4.043477,
+    "center_lon": 39.668206,
+    "radius_km": 12.0,
+    "base_depth_m": 0.80,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_MBA_02",
+    "center_lat": -4.035000,
+    "center_lon": 39.670000,
+    "radius_km": 22.0,
+    "base_depth_m": 1.45,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_MBA_03",
+    "center_lat": -4.040000,
+    "center_lon": 39.665000,
+    "radius_km": 35.0,
+    "base_depth_m": 2.50,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_KSM_01",
+    "center_lat": -0.091702,
+    "center_lon": 34.767956,
+    "radius_km": 18.0,
+    "base_depth_m": 0.95,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_KSM_02",
+    "center_lat": -0.100000,
+    "center_lon": 34.750000,
+    "radius_km": 25.0,
+    "base_depth_m": 1.30,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_KSM_03",
+    "center_lat": -0.120000,
+    "center_lon": 34.800000,
+    "radius_km": 38.0,
+    "base_depth_m": 2.10,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_TANA_01",
+    "center_lat": -0.450000,
+    "center_lon": 39.650000,
+    "radius_km": 45.0,
+    "base_depth_m": 1.10,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_TANA_02",
+    "center_lat": -1.500000,
+    "center_lon": 40.100000,
+    "radius_km": 60.0,
+    "base_depth_m": 2.20,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_NKU_01",
+    "center_lat": -0.303099,
+    "center_lon": 36.080025,
+    "radius_km": 15.0,
+    "base_depth_m": 1.15,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_NKU_02",
+    "center_lat": -0.280000,
+    "center_lon": 36.060000,
+    "radius_km": 28.0,
+    "base_depth_m": 1.70,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_ELD_01",
+    "center_lat": 0.514277,
+    "center_lon": 35.269780,
+    "radius_km": 14.0,
+    "base_depth_m": 0.70,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_ELD_02",
+    "center_lat": 0.520000,
+    "center_lon": 35.280000,
+    "radius_km": 25.0,
+    "base_depth_m": 1.50,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_GAR_01",
+    "center_lat": -0.453200,
+    "center_lon": 39.646000,
+    "radius_km": 20.0,
+    "base_depth_m": 1.35,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_GAR_02",
+    "center_lat": -0.460000,
+    "center_lon": 39.650000,
+    "radius_km": 35.0,
+    "base_depth_m": 2.30,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_NAT_01",
+    "center_lat": -1.000000,
+    "center_lon": 37.000000,
+    "radius_km": 150.0,
+    "base_depth_m": 3.00,
+    "shape_type": "radial_decay"
+  },
+  {
+    "footprint_id": "FP_NAT_02",
+    "center_lat": -1.200000,
+    "center_lon": 37.500000,
+    "radius_km": 250.0,
+    "base_depth_m": 3.50,
+    "shape_type": "radial_decay"
+  }
+]

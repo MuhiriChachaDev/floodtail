@@ -1,0 +1,21 @@
+event_id,event_name,event_type,scenario_tag,annual_frequency,severity,footprint_ref,source,duration_days
+EVT_NBI_001,Nairobi River Flash Flood - Minor,fluvial,baseline,0.25,0.80,FP_NBI_01,SYNTHETIC,2
+EVT_NBI_002,Nairobi Urban Inundation - Moderate,pluvial,baseline,0.12,1.20,FP_NBI_02,SYNTHETIC,3
+EVT_NBI_003,Nairobi Basin 50-Year Flood,fluvial,baseline,0.02,1.80,FP_NBI_03,SYNTHETIC,5
+EVT_NBI_004,Nairobi Extreme 100-Year Deluge,fluvial,baseline,0.01,2.50,FP_NBI_04,SYNTHETIC,7
+EVT_MBA_001,Mombasa Coastal Surge - Minor,coastal,baseline,0.20,0.75,FP_MBA_01,SYNTHETIC,2
+EVT_MBA_002,Mombasa Tidal & Pluvial - Moderate,coastal,baseline,0.08,1.30,FP_MBA_02,SYNTHETIC,3
+EVT_MBA_003,Mombasa Extreme Storm Surge 100-Year,coastal,baseline,0.01,2.40,FP_MBA_03,SYNTHETIC,4
+EVT_KSM_001,Kisumu Lake Basin Overflow - Seasonal,fluvial,baseline,0.30,0.90,FP_KSM_01,SYNTHETIC,5
+EVT_KSM_002,Kisumu Urban Drainage Failure,pluvial,baseline,0.15,1.10,FP_KSM_02,SYNTHETIC,2
+EVT_KSM_003,Nyando River Severe Inundation,fluvial,baseline,0.04,1.90,FP_KSM_03,SYNTHETIC,8
+EVT_TANA_001,Tana River Seasonal Inundation,fluvial,baseline,0.35,0.85,FP_TANA_01,SYNTHETIC,10
+EVT_TANA_002,Tana Lower Basin Major Flood,fluvial,baseline,0.05,1.75,FP_TANA_02,SYNTHETIC,14
+EVT_NKU_001,Nakuru Basin Flash Flood,flash_flood,baseline,0.18,1.05,FP_NKU_01,SYNTHETIC,1
+EVT_NKU_002,Rift Valley Severe Torrent,fluvial,baseline,0.03,1.60,FP_NKU_02,SYNTHETIC,3
+EVT_ELD_001,Uasin Gishu Plateau Drainage Event,pluvial,baseline,0.22,0.70,FP_ELD_01,SYNTHETIC,2
+EVT_ELD_002,Eldoret Urban Stormwater Flood,pluvial,baseline,0.06,1.40,FP_ELD_02,SYNTHETIC,2
+EVT_GAR_001,Garissa Riverine Flood,fluvial,baseline,0.10,1.25,FP_GAR_01,SYNTHETIC,6
+EVT_GAR_002,Garissa Major Overbank Event,fluvial,baseline,0.02,2.10,FP_GAR_02,SYNTHETIC,9
+EVT_STRESS_001,National Concurrent Extreme Flood,fluvial,stress,0.005,3.00,FP_NAT_01,STRESS,14
+EVT_STRESS_002,Super El Nino Climate Shift Flood,fluvial,stress,0.002,3.50,FP_NAT_02,STRESS,21
