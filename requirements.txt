@@ -1,0 +1,11 @@
+# FLOODTAIL Phase 1 — Foundation Dependencies
+# =============================================
+# Minimal set required for backend foundation.
+# Additional packages (geopandas, scikit-learn, streamlit, etc.)
+# will be added in later phases as needed.
+
+pandas>=2.0,<3.0
+numpy>=1.24,<3.0
+pydantic>=2.0,<3.0
+pyyaml>=6.0,<7.0
+pytest>=7.0,<9.0

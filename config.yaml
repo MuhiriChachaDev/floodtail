@@ -1,0 +1,47 @@
+# =============================================================================
+# FLOODTAIL Configuration
+# =============================================================================
+#
+# IMPORTANT NOTICE:
+# These are PROTOTYPE configuration values for development and testing.
+# They are NOT:
+#   - Kenya Re internal assumptions
+#   - Production pricing rules
+#   - Scientifically validated Kenya-specific parameters
+#   - Regulatory-approved values
+#
+# All values will be calibrated during later phases with domain expertise.
+# =============================================================================
+
+project:
+  name: "FLOODTAIL"
+  version: "0.1.0"
+  environment: "development"
+
+simulation:
+  years: 10000
+  seed: 482913
+
+risk:
+  tail_confidence: 0.996
+
+pricing:
+  cost_of_capital_rate: 0.10
+  expense_rate: 0.10
+
+model:
+  hazard_version: "prototype"
+  vulnerability_version: "prototype"
+  model_version: "0.1.0"
+
+governance:
+  require_human_decision: true
+  audit_enabled: true
+
+data:
+  portfolio_required_fields:
+    - policy_id
+    - latitude
+    - longitude
+    - insured_value
+    - property_type
