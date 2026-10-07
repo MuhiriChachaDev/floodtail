@@ -245,10 +245,11 @@ def test_api_freetext_bad_rows_do_not_break_run() -> None:
     assert r.json()["insight"]["insured_houses"] == 600
 
 
-def test_health_reports_phase_d() -> None:
+def test_health_reports_phase_f() -> None:
     r = client.get("/v1/health")
     assert r.status_code == 200
     body = r.json()
-    assert body["phase"] == "E-security-xai"
+    assert body["phase"] == "F-e2e-hardening"
     assert "ollama_up" in body
     assert "audit_chain_valid" in body
+    assert "registry" in body

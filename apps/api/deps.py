@@ -25,10 +25,10 @@ class RequestContext:
 def get_request_context(
     request: Request,
     settings: Annotated[Settings, Depends(get_settings)],
-    authorization: Annotated[Optional[str], Header(default=None)] = None,
-    x_floodtail_role: Annotated[Optional[str], Header(default=None)] = None,
-    x_floodtail_actor: Annotated[Optional[str], Header(default=None)] = None,
-    x_floodtail_tenant: Annotated[Optional[str], Header(default=None)] = None,
+    authorization: Annotated[Optional[str], Header()] = None,
+    x_floodtail_role: Annotated[Optional[str], Header()] = None,
+    x_floodtail_actor: Annotated[Optional[str], Header()] = None,
+    x_floodtail_tenant: Annotated[Optional[str], Header()] = None,
 ) -> RequestContext:
     """
     Resolve caller from JWT or prototype stub headers.

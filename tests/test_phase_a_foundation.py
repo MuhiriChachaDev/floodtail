@@ -144,29 +144,30 @@ def test_store_portfolio_and_run_roundtrip() -> None:
     assert store.stats()["runs"] == 1
 
 
-def test_root_phase_e() -> None:
+def test_root_phase_f() -> None:
     r = client.get("/")
     assert r.status_code == 200
     body = r.json()
     assert body["service"] == "floodtail-api"
-    assert body["status"] == "phase-e"
-    assert body["phase"] == "E"
+    assert body["status"] == "phase-f"
+    assert body["phase"] == "F"
 
 
-def test_health_reports_phase_e() -> None:
+def test_health_reports_phase_f() -> None:
     r = client.get("/v1/health")
     assert r.status_code == 200
     body = r.json()
-    assert body["phase"] == "E-security-xai"
+    assert body["phase"] == "F-e2e-hardening"
     assert body["streamlit"] == "removed"
     assert "assumptions_version" in body
     assert body["return_periods"] == [5, 20, 50, 100, 250]
     assert "capital_policy" in body
     assert "store" in body
     assert "ollama_up" in body
+    assert "registry" in body
 
 
-def test_phase_e_routes_live() -> None:
+def test_phase_f_routes_live() -> None:
     assert client.get("/v1/models").status_code == 200
     # underwriter lacks audit:read → 403; auditor gets 200
     assert client.get("/v1/audit").status_code == 403

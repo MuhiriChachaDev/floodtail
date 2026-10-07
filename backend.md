@@ -507,11 +507,11 @@ narrative: str   # optional prose
 
 # Phase F — E2E hardening
 
-- [ ] One integration test: upload → train → run → metrics → insight → approve → audit verify
-- [ ] Health reports: nairobi/data path, ollama up/down, registry present
-- [ ] Sync `ROADMAP.md` / `ASSUMPTIONS.md` if capital-band defaults change
-- [ ] Update `DEMO_SCRIPT.md` for insight-first walkthrough
-- [ ] Do **not** build Next.js product UI in this backend track
+- [x] One integration test: upload → train → run → metrics → insight → approve → audit verify (`tests/test_phase_f_e2e.py`)
+- [x] Health reports: nairobi/data path, ollama up/down, registry present (`/v1/health` → `registry`)
+- [x] Sync `ASSUMPTIONS.md` capital-band defaults (floor RP100 / ceiling RP250 / TIV fraction)
+- [x] Update `DEMO_SCRIPT.md` for insight-first walkthrough
+- [x] Do **not** build Next.js product UI in this backend track
 
 **Exit F:** `pytest` green; demo script runnable against API only.
 
