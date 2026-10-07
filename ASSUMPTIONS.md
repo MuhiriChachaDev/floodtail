@@ -1,30 +1,124 @@
-# FLOODTAIL — Assumptions Register
+# ASSUMPTIONS — Nairobi Urban Flood CAT (Team A)
 
-This register documents all primary quantitative, geospatial, actuarial, and operational assumptions embedded in the FLOODTAIL demonstration platform.
+Register of modelling assumptions for the Nairobi County pluvial prototype. Every metrics payload should echo `assumptions_version` and `data_labels`.
 
-| Assumption Name | Value / Specification | Status | Source / Baseline | Portfolio / Risk Impact |
-|:---|:---|:---:|:---|:---|
-| **Event Arrival Process** | Poisson distribution ($\lambda = \sum f_i$) | `VERIFIED` | Classical Catastrophe Modeling Standard | Dictates inter-arrival event independence across simulation years. |
-| **Simulation Depth** | 10,000 Monte Carlo years | `VERIFIED` | Catastrophe Convergence Standard | Provides 40 empirical tail observations at $\alpha = 0.996$ (1-in-250 RP). |
-| **Stochastic Random Seed** | `482913` | `VERIFIED` | Reproducibility Standard | Guarantees bit-identical loss realizations across repeated executions. |
-| **Hazard Decay Function** | Radial Exponential Depth Decay | `PROTOTYPE` | Synthetic Engineering Formulation | Flood depth decreases smoothly from centroid outwards to perimeter. |
-| **Flood Depth Cutoff** | $\ge 0.05$ meters | `BENCHMARK` | Flood Inundation Threshold | Filters negligible dampness to maintain computational sparsity. |
-| **Depth-Damage Curves** | Piecewise linear monotonic curves | `BENCHMARK` | International FEMA / USACE Adaptation | Governs structural & contents damage percentage by property type. |
-| **Construction Modifiers** | Concrete (0.85), Steel (1.00), Timber (1.15) | `BENCHMARK` | Structural Engineering Guidelines | Multiplies base depth-damage ratio based on construction vulnerability. |
-| **Tail Confidence Level** | $\alpha = 0.996$ (1-in-250 years) | `SUPPLIED` | Solvency II / Actuarial Standard | Tail cutoff percentile for TVaR, PML, and capital allocation. |
-| **Euler TVaR Allocation** | Fractional tail year loss attribution | `VERIFIED` | Actuarial Risk Allocation Theory | Ensures exact additive allocation: $\sum \text{Tail}_k = \text{Portfolio TVaR}$. |
-| **Marginal TVaR Realization** | Common Random Numbers (CRN) | `VERIFIED` | Variance Reduction Actuarial Science | Evaluates true portfolio contribution using identical event set. |
-| **Cost of Capital Rate ($r_{coc}$)** | $10.0\%$ per annum | `PROTOTYPE` | Reinsurance Pricing Waterfall Baseline | Charges capital cost on net tail exposure above expected loss. |
-| **Underwriting Expense Ratio** | $10.0\%$ of technical premium | `PROTOTYPE` | Market Expense Ratio Baseline | Accounts for brokerage, operational, and administrative loadings. |
-| **Policy Terms Application** | Deductibles & Limits per Policy | `VERIFIED` | Insurance Financial Mechanics | Ground-up loss clamped: $\text{Loss} = \min(\max(0, L_{gu} - D), Limit)$. |
-| **Cryptographic Hash Chain** | SHA-256 with Genesis `00...00` | `VERIFIED` | Blockchain / Immutable Ledger Standard | Provides cryptographic guarantee against retroactive record tampering. |
-| **Kenya Re Empirical Claims** | Historical claims loss settlement | `UNKNOWN` | Proprietary Reinsurer Data | Not incorporated in prototype; designated for Phase 7 production integration. |
+**Assumptions version:** `nairobi-pluvial-v1`  
+**Scope:** Nairobi County only · pluvial (surface-water) · synthetic exposure · proxy hazard
 
 ---
 
-### Status Definitions
-- **SUPPLIED**: Explicitly defined by client, configuration, or statutory regulatory standards.
-- **VERIFIED**: Empirically proven and verified by mathematical tests in the test suite.
-- **BENCHMARK**: Accepted international engineering or scientific literature benchmark.
-- **PROTOTYPE**: Configurable demonstration parameters representing realistic market operational baselines.
-- **UNKNOWN**: External proprietary data not yet accessible to the prototype platform.
+## Status taxonomy
+
+| Status | Meaning |
+|--------|---------|
+| **SUPPLIED** | Present in repo inputs as-is (CSV / GeoTIFF / hotspot list) |
+| **VERIFIED** | Checked against a stated external source or internal QA rule |
+| **BENCHMARK** | Adapted from published literature / industry prior (cited) |
+| **PROTOTYPE** | Working default for the hackathon; not calibrated to Nairobi claims |
+| **UNKNOWN** | Not established; treat as gap |
+
+Do not upgrade status without evidence in this register.
+
+---
+
+## 1. Geography & peril
+
+| ID | Assumption | Status | Notes |
+|----|------------|--------|-------|
+| G1 | Study area = Nairobi County bounding box for DQ | PROTOTYPE | Coords outside bbox → reject / flag |
+| G2 | Peril = pluvial / surface-water only | SUPPLIED | No fluvial channel routing, no multi-peril |
+| G3 | No full hydrology (rainfall–runoff–inundation) | SUPPLIED | Explicit non-goal |
+
+---
+
+## 2. Exposure
+
+| ID | Assumption | Status | Notes |
+|----|------------|--------|-------|
+| E1 | 600 locations in `exposure_nairobi_*.csv` | SUPPLIED | Starter kit; not a real portfolio |
+| E2 | Every row `synthetic=True` | SUPPLIED | Stamp preserved on all API payloads |
+| E3 | `tiv_kes = floor_area_m2 × cost_per_m2_kes` | SUPPLIED | As generated in starter CSV |
+| E4 | Housing classes: `informal_iron_sheet`, `semi_permanent`, `permanent_masonry`, `concrete_rcc` | SUPPLIED | Schema enum for vuln model / curves |
+| E5 | Free-text → exposure agent rows are synthetic until human-approved | PROTOTYPE | Agentic path; schema-validated |
+
+---
+
+## 3. Hazard (proxy + ML)
+
+| ID | Assumption | Status | Notes |
+|----|------------|--------|-------|
+| H1 | Five severity tiers: common, occasional, moderate, severe, extreme | SUPPLIED | Columns + matching GeoTIFFs |
+| H2 | Proxy rasters / CSV scores ∈ [0, 1] = relative susceptibility, not metres | SUPPLIED | `Nairobi_Data/nairobi_pluvial_proxy_*.tif` |
+| H3 | Depth mapping: `depth_m = hazard_score_pred × D_max` | PROTOTYPE | Linear; no stage-discharge |
+| H4 | `D_max = 4.0 m` | PROTOTYPE | Documented default; configurable |
+| H5 | Return-period map (see table below) | PROTOTYPE | Discrete EP; not a stochastic catalogue |
+| H6 | 24 named hotspots from government lists (geocoded) | SUPPLIED | `nairobi_hotspots_geocoded.csv` |
+| H7 | Proxy QA: ≈ **12 / 24** hotspots align with elevated proxy signal | VERIFIED | Known miss: drainage-driven / cold-proxy areas |
+| H8 | Hazard ML labels = proxy scores + hotspot uplift + optional OSM drainage uplift | PROTOTYPE | **Synthetic labels** — not flood gauges |
+| H9 | Optional OSM waterway distance features | PROTOTYPE | Enrichment only when cited in run lineage |
+
+### Return-period map (PROTOTYPE)
+
+| Tier | Assumed RP (years) | Approx. AEP |
+|------|--------------------|-------------|
+| common | 5 | 0.20 |
+| occasional | 20 | 0.05 |
+| moderate | 50 | 0.02 |
+| severe | 100 | 0.01 |
+| extreme | 250 | 0.004 |
+
+---
+
+## 4. Vulnerability
+
+| ID | Assumption | Status | Notes |
+|----|------------|--------|-------|
+| V1 | Prior depth–damage curves: JRC / Huizinga-adapted by `housing_class` | BENCHMARK | Adapted for Nairobi housing typology; not Kenya claims-calibrated |
+| V2 | Vulnerability ML trained on synthetic labels from prior (± noise / class modifiers) | PROTOTYPE | May predict residual vs prior |
+| V3 | `damage_ratio = clip(model.predict(...), 0, 1)` | PROTOTYPE | Inference only; no LLM in numeric path |
+| V4 | LLM curve “research notes” require human-approved parameter patch | PROTOTYPE | Never silent curve overwrite |
+
+---
+
+## 5. Financial / EP (deterministic)
+
+| ID | Assumption | Status | Notes |
+|----|------------|--------|-------|
+| F1 | `ground_up_loss = damage_ratio × tiv_kes` | SUPPLIED | Multiply is deterministic |
+| F2 | EP curve from discrete tier losses + RP map | PROTOTYPE | Not 10k-year Kenya Monte Carlo |
+| F3 | AAL ≈ Σ (AEP_tier × tier_portfolio_loss) over discrete RPs | PROTOTYPE | Documented discrete approximation |
+| F4 | LLM never emits loss / EP / AAL / premium | SUPPLIED | Hard boundary + output allowlist |
+| F5 | Optional light MC only for uncertainty bands | PROTOTYPE | Not product core |
+
+---
+
+## 6. AI / security defaults
+
+| ID | Assumption | Status | Notes |
+|----|------------|--------|-------|
+| A1 | Primary Ollama model: `qwen2.5:3b-instruct` (or documented swap) | PROTOTYPE | Temp 0 for structured / narrative agents |
+| A2 | Tree library: XGBoost (LightGBM fallback) | PROTOTYPE | Version pinned in model registry |
+| A3 | Number allowlist from `cat_core` + SHAP tops only | SUPPLIED | kenyaRE-style `validate_llm_output` |
+| A4 | Auth: Keycloak JWT + full RBAC in compose / prod | PROTOTYPE | No anonymous default role in prod |
+
+---
+
+## 7. Explicit unknowns
+
+| ID | Gap | Status |
+|----|-----|--------|
+| U1 | Nairobi gauge / claims calibration of depths and curves | UNKNOWN |
+| U2 | True RP–severity relationship for city pluvial events | UNKNOWN |
+| U3 | Real TIV / construction distribution vs synthetic kit | UNKNOWN |
+| U4 | Drainage network completeness vs OSM | UNKNOWN |
+
+---
+
+## Labelling rule
+
+Any API `metrics` / `narrative` / evidence payload must carry:
+
+- `data_labels`: e.g. `synthetic_exposure`, `proxy_hazard`, `prototype_rp_map`, `synthetic_ml_labels`, `jrc_adapted_curves`
+- `hazard_model_version`, `vuln_model_version`, `assumptions_version`
+
+If a value is missing a label, treat it as **UNKNOWN** until classified here.
