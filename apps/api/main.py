@@ -1,19 +1,31 @@
-"""FLOODTAIL — Nairobi Urban Flood CAT API entrypoint."""
+"""FLOODTAIL — Flood CAT API entrypoint."""
 
 from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from apps.api.routers import health
+from apps.api.routers import (
+    audit,
+    explanations,
+    health,
+    insight,
+    models,
+    portfolios,
+    query,
+    runs,
+)
+from apps.api.settings import get_settings
+
+_settings = get_settings()
 
 app = FastAPI(
-    title="FLOODTAIL Nairobi Flood CAT API",
-    version="0.1.0-scaffold",
+    title="FLOODTAIL Flood CAT API",
+    version="0.1.0-phase-c",
     description=(
-        "AI/ML + agentic flood catastrophe model for Nairobi pluvial risk. "
-        "Deterministic financial/EP core; trained hazard & vulnerability models; "
-        "Ollama agents with kenyaRE-style security."
+        "Location-flexible flood catastrophe backend for reinsurance underwriters. "
+        "Agentic LangGraph orchestration + predictive ML + grounded EP/capital math. "
+        "Phase C: hazard/vuln ML pipeline (data→features→train→eval→tune→infer)."
     ),
 )
 
@@ -25,13 +37,22 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/v1", tags=["health"])
+app.include_router(portfolios.router, prefix="/v1", tags=["portfolios"])
+app.include_router(runs.router, prefix="/v1", tags=["runs"])
+app.include_router(insight.router, prefix="/v1", tags=["insight"])
+app.include_router(models.router, prefix="/v1", tags=["models"])
+app.include_router(explanations.router, prefix="/v1", tags=["explanations"])
+app.include_router(query.router, prefix="/v1", tags=["query"])
+app.include_router(audit.router, prefix="/v1", tags=["audit"])
 
 
 @app.get("/")
 def root() -> dict[str, str]:
     return {
         "service": "floodtail-api",
-        "status": "scaffold",
+        "status": "phase-c",
+        "phase": "C",
         "docs": "/docs",
         "health": "/v1/health",
+        "assumptions_version": _settings.assumptions_version,
     }
