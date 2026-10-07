@@ -1,4 +1,4 @@
-"""Phase 0 — API health smoke test."""
+"""Phase A — API health smoke test."""
 
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ def test_root() -> None:
     assert r.status_code == 200
     body = r.json()
     assert body["service"] == "floodtail-api"
-    assert body["status"] == "scaffold"
+    assert body["status"] == "phase-c"
+    assert body["phase"] == "C"
 
 
 def test_health() -> None:
@@ -22,4 +23,6 @@ def test_health() -> None:
     assert r.status_code == 200
     body = r.json()
     assert body["streamlit"] == "removed"
+    assert body["phase"] == "C-ml"
     assert "nairobi_data_ok" in body
+    assert "assumptions_version" in body
