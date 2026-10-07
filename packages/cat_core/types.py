@@ -162,6 +162,16 @@ class AgentResult(BaseModel):
     critical: bool = False
 
 
+class DecisionRecord(BaseModel):
+    """Human gate decision (approve endpoint)."""
+
+    decision: Recommendation
+    reason: str
+    actor: str = "anonymous"
+    gate: Literal["gate1", "gate2"] = "gate2"
+    decided_at: datetime = Field(default_factory=utc_now)
+
+
 class RunRecord(BaseModel):
     """Persisted run state."""
 
@@ -181,4 +191,8 @@ class RunRecord(BaseModel):
     stages: list[AgentResult] = Field(default_factory=list)
     metrics: Optional[MetricsPayload] = None
     insight: Optional[InsightPackage] = None
+    narrative: Optional[str] = None
+    allowlist: dict[str, Any] = Field(default_factory=dict)
+    decision: Optional[DecisionRecord] = None
+    ollama_degraded: bool = False
     error: Optional[str] = None

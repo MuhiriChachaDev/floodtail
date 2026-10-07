@@ -1,4 +1,4 @@
-# FLOODTAIL — core API scaffold (Phase 0)
+# FLOODTAIL — core API + ML + agents (Phase D)
 # Install extras via: pip install -e ".[all]"
 
 fastapi>=0.111
@@ -14,3 +14,9 @@ pytest>=8.2
 scikit-learn>=1.4
 joblib>=1.4
 xgboost>=2.0
+langchain-core>=0.2
+langchain-ollama>=0.1
+langgraph>=0.1
+shap>=0.45
+cryptography>=42
+python-jose[cryptography]>=3.3

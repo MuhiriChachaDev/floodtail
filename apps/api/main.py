@@ -21,11 +21,11 @@ _settings = get_settings()
 
 app = FastAPI(
     title="FLOODTAIL Flood CAT API",
-    version="0.1.0-phase-c",
+    version="0.1.0-phase-e",
     description=(
         "Location-flexible flood catastrophe backend for reinsurance underwriters. "
         "Agentic LangGraph orchestration + predictive ML + grounded EP/capital math. "
-        "Phase C: hazard/vuln ML pipeline (data→features→train→eval→tune→infer)."
+        "Phase E: XAI (SHAP/CF) + kenyaRE-hard security (RBAC, JWT, AES, audit)."
     ),
 )
 
@@ -50,8 +50,8 @@ app.include_router(audit.router, prefix="/v1", tags=["audit"])
 def root() -> dict[str, str]:
     return {
         "service": "floodtail-api",
-        "status": "phase-c",
-        "phase": "C",
+        "status": "phase-e",
+        "phase": "E",
         "docs": "/docs",
         "health": "/v1/health",
         "assumptions_version": _settings.assumptions_version,

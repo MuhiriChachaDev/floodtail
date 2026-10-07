@@ -2,20 +2,38 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Query
+
+from apps.api.deps import ContextDep, enforce_permission
+from packages.security.audit_log import get_audit_chain
 
 router = APIRouter()
 
 
 @router.get("/audit")
-def get_audit() -> JSONResponse:
-    return JSONResponse(
-        status_code=501,
-        content={
-            "status": "not_implemented",
-            "phase": "A",
-            "next": "E",
-            "detail": "SHA-256 audit chain lands in Phase E.",
-        },
-    )
+def get_audit(
+    ctx: ContextDep,
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> dict:
+    enforce_permission(ctx, "audit:read")
+    chain = get_audit_chain()
+    events = chain.list_events()
+    page = events[offset : offset + limit]
+    return {
+        "chain_valid": chain.verify(),
+        "total": len(events),
+        "offset": offset,
+        "limit": limit,
+        "events": [
+            {
+                "seq": e.seq,
+                "event_type": e.event_type,
+                "ts": e.ts,
+                "prev_hash": e.prev_hash,
+                "event_hash": e.event_hash,
+                "payload": e.payload,
+            }
+            for e in page
+        ],
+    }

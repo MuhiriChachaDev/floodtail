@@ -1,0 +1,131 @@
+"""LangChain tools wrapping grounded CAT math (EP / capital / accumulation)."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pandas as pd
+
+from packages.cat_core.accumulation import build_accumulation_summary
+from packages.cat_core.assumptions import AssumptionsProfile
+from packages.cat_core.capital import (
+    allowlist_from_band,
+    compute_capital_band_from_profile,
+    ep_allowlist,
+)
+from packages.cat_core.ep import build_ep_curve, build_tier_losses, discrete_aal
+from packages.cat_core.financial import add_loss_columns, reconcile_location_losses
+from packages.cat_core.types import CapitalBand, MetricsPayload, TierLoss
+
+
+def compute_ep_capital(
+    frame: pd.DataFrame,
+    profile: AssumptionsProfile,
+    *,
+    run_id: str,
+    portfolio_id: str,
+    location_label: str,
+    data_labels: Any,
+    hazard_model_version: str | None = None,
+    vuln_model_version: str | None = None,
+    baseline_delta: dict | None = None,
+    warnings: list[str] | None = None,
+) -> tuple[pd.DataFrame, MetricsPayload, list[TierLoss], CapitalBand]:
+    """Compute losses → EP → AAL → capital band from a damage-ready frame."""
+    work = add_loss_columns(frame, profile.tier_names)
+    tier_totals = reconcile_location_losses(work, profile.tier_names)
+    mean_dmg = {
+        tier: float(work[f"damage_ratio_{tier}"].mean()) for tier in profile.tier_names
+    }
+    tier_losses = build_tier_losses(tier_totals, profile, mean_damage_by_tier=mean_dmg)
+    ep_curve = build_ep_curve(tier_losses)
+    aal = discrete_aal(tier_losses)
+    capital = compute_capital_band_from_profile(
+        tier_losses, aal, float(work["tiv_kes"].sum()), profile
+    )
+    accum = build_accumulation_summary(work, profile.tier_names)
+    metrics = MetricsPayload(
+        run_id=run_id,
+        portfolio_id=portfolio_id,
+        assumptions_version=profile.assumptions_version,
+        data_labels=data_labels,
+        n_insured_houses=int(len(work)),
+        total_tiv_kes=float(work["tiv_kes"].sum()),
+        location_label=location_label,
+        tier_losses=tier_losses,
+        ep_curve=ep_curve,
+        aal_kes=round(aal, 2),
+        capital_band=capital,
+        hazard_model_version=hazard_model_version,
+        vuln_model_version=vuln_model_version,
+        baseline_delta=dict(baseline_delta or {}),
+        accumulation_summary=accum,
+        warnings=list(warnings or []),
+    )
+    return work, metrics, tier_losses, capital
+
+
+def compute_accumulation(frame: pd.DataFrame, profile: AssumptionsProfile) -> dict[str, Any]:
+    return build_accumulation_summary(frame, profile.tier_names)
+
+
+def get_allowlist(metrics: MetricsPayload) -> dict[str, Any]:
+    """Frozen numbers the Insight Agent / LLM may present."""
+    band = metrics.capital_band
+    allow: dict[str, Any] = {
+        "n_insured_houses": metrics.n_insured_houses,
+        "insured_houses": metrics.n_insured_houses,
+        "total_tiv_kes": metrics.total_tiv_kes,
+        "location_label": metrics.location_label,
+        "aal_kes": metrics.aal_kes,
+        "assumptions_version": metrics.assumptions_version,
+    }
+    if band is not None:
+        allow.update(allowlist_from_band(band))
+        allow["set_aside"] = {
+            "floor": band.floor_kes,
+            "central": band.central_kes,
+            "ceiling": band.ceiling_kes,
+            "currency": band.currency,
+        }
+    allow.update(ep_allowlist(metrics.ep_curve))
+    for t in metrics.tier_losses:
+        allow[f"tier_loss_{t.tier}_kes"] = t.loss_kes
+        allow[f"ep_loss_rp{t.return_period}_kes"] = t.loss_kes
+
+    by_class = (metrics.accumulation_summary or {}).get("by_housing_class") or []
+    if by_class:
+        top = by_class[0]
+        allow["top_class"] = top.get("housing_class")
+        allow["top_class_loss_share_pct"] = top.get("loss_share_pct")
+        allow["top_concentration_drivers"] = [
+            {
+                "housing_class": c.get("housing_class"),
+                "loss_share_pct": c.get("loss_share_pct"),
+            }
+            for c in by_class[:3]
+        ]
+
+    if metrics.hazard_model_version:
+        allow["hazard_model_version"] = metrics.hazard_model_version
+    if metrics.vuln_model_version:
+        allow["vuln_model_version"] = metrics.vuln_model_version
+    if metrics.baseline_delta:
+        allow["baseline_delta"] = metrics.baseline_delta
+        if "aal_delta_kes" in metrics.baseline_delta:
+            allow["aal_delta_kes"] = metrics.baseline_delta["aal_delta_kes"]
+        if "baseline_aal_kes" in metrics.baseline_delta:
+            allow["baseline_aal_kes"] = metrics.baseline_delta["baseline_aal_kes"]
+    return allow
+
+
+try:
+    from langchain_core.tools import tool
+
+    @tool
+    def describe_math_tools() -> str:
+        """List grounded math tools (EP, capital, accumulation, allowlist)."""
+        return "compute_ep_capital, compute_accumulation, get_allowlist"
+
+except ImportError:  # pragma: no cover
+    pass

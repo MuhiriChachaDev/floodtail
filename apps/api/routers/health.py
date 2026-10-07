@@ -6,13 +6,15 @@ from fastapi import APIRouter
 
 from apps.api.settings import get_settings
 from apps.api.store import get_store
+from packages.llm.ollama_client import OllamaClient
+from packages.security.audit_log import get_audit_chain
 
 router = APIRouter()
 
 
 @router.get("/health")
 def health() -> dict:
-    """Liveness probe — settings, store, starter data presence."""
+    """Liveness probe — settings, store, starter data, Ollama."""
     settings = get_settings()
     store = get_store()
     nairobi = settings.nairobi_data_dir
@@ -22,10 +24,17 @@ def health() -> dict:
     ]
     missing = [f for f in required if not (nairobi / f).exists()]
     profile = settings.assumptions_profile()
+    ollama = OllamaClient(
+        host=settings.ollama_host,
+        model=settings.ollama_primary_model,
+    ).health()
+    status = "ok"
+    if missing or not ollama.available:
+        status = "degraded"
     return {
-        "status": "ok" if not missing else "degraded",
+        "status": status,
         "env": settings.env,
-        "phase": "C-ml",
+        "phase": "E-security-xai",
         "streamlit": "removed",
         "frontend": "apps/web (empty Next.js scaffold)",
         "nairobi_data": str(nairobi),
@@ -38,5 +47,9 @@ def health() -> dict:
         "return_periods": profile.return_periods,
         "capital_policy": profile.capital.model_dump(),
         "ollama_host": settings.ollama_host,
+        "ollama_model": settings.ollama_primary_model,
+        "ollama_up": ollama.available,
+        "ollama_detail": ollama.detail,
+        "audit_chain_valid": get_audit_chain().verify(),
         "store": store.stats(),
     }

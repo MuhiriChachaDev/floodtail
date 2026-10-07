@@ -178,10 +178,17 @@ def test_api_train_and_ml_run(tmp_path: Path, monkeypatch) -> None:
     assert port.status_code == 200
     pid = port.json()["portfolio"]["id"]
 
-    haz = client.post("/v1/models/hazard/train", json={"tune": True, "n_iter": 3, "seed": 3})
+    sci = {"X-Floodtail-Role": "data_scientist"}
+    haz = client.post(
+        "/v1/models/hazard/train",
+        json={"tune": True, "n_iter": 3, "seed": 3},
+        headers=sci,
+    )
     assert haz.status_code == 200, haz.text
     vuln = client.post(
-        "/v1/models/vulnerability/train", json={"tune": True, "n_iter": 3, "seed": 3}
+        "/v1/models/vulnerability/train",
+        json={"tune": True, "n_iter": 3, "seed": 3},
+        headers=sci,
     )
     assert vuln.status_code == 200, vuln.text
 
@@ -196,6 +203,7 @@ def test_api_train_and_ml_run(tmp_path: Path, monkeypatch) -> None:
             "use_ml": True,
             "hazard_model_version": haz.json()["version"],
             "vuln_model_version": vuln.json()["version"],
+            "force_ollama_down": True,
         },
     )
     assert run.status_code == 200, run.text
