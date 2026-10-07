@@ -1,57 +1,95 @@
-# FLOODTAIL — Model Card & Risk Governance Specification
+# MODEL CARD — Nairobi Urban Flood CAT Prototype
 
-## Model Details
-- **Model Name**: FLOODTAIL Reinsurance Catastrophe & Portfolio Decision Engine
-- **Release Version**: `v1.0.0-demo`
-- **Release Date**: October 2026
-- **Model Type**: Multi-tier stochastic catastrophe simulation, marginal tail risk allocation, technical pricing waterfall, and deterministic multi-agent governance pipeline.
-- **Maintainers**: FLOODTAIL Engineering & Quantitative Catastrophe Modeling Team
+**Model suite:** HazardModel + VulnerabilityModel + deterministic `cat_core`  
+**Product:** FLOODTAIL Team A Nairobi pluvial hackathon prototype  
+**Assumptions version:** `nairobi-pluvial-v1`  
+**Card status:** Prototype — not regulatory or underwriting-grade
 
 ---
 
-## Intended Use
-- **Primary Use**: Demonstration of portfolio-aware reinsurance catastrophe risk intelligence, policy tail risk attribution, marginal TVaR evaluation, and explainable human-in-the-loop underwriting decision governance.
-- **Intended Users**: Reinsurance treaty & facultative underwriters, catastrophe risk analysts, actuarial teams, risk governance officers.
-- **Operational Mode**: Pre-underwriting risk screening, capital allocation evaluation, portfolio accumulation monitoring, counterfactual what-if sensitivity analysis, and auditable decision logging.
+## 1. Intended use
 
-## Out-of-Scope / Not Intended Use
-- ❌ **Direct Commercial Underwriting Execution**: FLOODTAIL is a prototype demonstration engine. It is not approved for binding production legal contracts without empirical Kenya claims calibration and regulatory clearance.
-- ❌ **Automated Dark Underwriting**: Autonomous policy acceptance without certified underwriter review is strictly disallowed by system architecture.
-- ❌ **Black Box Financial Predictions**: Black-box generative neural networks are not permitted to infer loss amounts or bind capital.
+| Intended | Not intended |
+|----------|--------------|
+| Demo end-to-end Nairobi pluvial CAT via API | Pricing real treaties |
+| Train/pin ML that changes predicted hazard & damage | Claiming gauge-validated depths |
+| Show EP curve + labelled assumptions | Multi-peril or Kenya-wide catalogue |
+| Agentic briefing with validated numbers | Replacing human underwriter decision |
+| Teaching / hackathon evaluation of AI + CAT stack | Production claims reserving |
 
----
-
-## Inputs and Data Contracts
-| Input | Type | Source / Format | Validation Rule |
-|:---|:---|:---|:---|
-| **Exposure Portfolio** | Tabular | CSV / Parquet | Valid coordinates (Lat/Lon within bounds), positive TIV, typed property type & construction class |
-| **Event Catalogue** | Tabular | CSV (`events.csv`) | Poisson annual frequencies $\ge 0$, severity scale $\ge 0$, valid footprint reference |
-| **Hazard Footprints** | Geospatial / GeoJSON | JSON (`footprints.json`) | Physical footprint centroids, decay radius, positive flood depth |
-| **Vulnerability Curves** | Piecewise linear | In-memory / Config | Monotonic damage ratios $\in [0, 1]$, depth non-negative |
-| **Simulation Parameters** | YAML Config | `config.yaml` | Simulation years ($N \ge 1$), seed, tail confidence $\alpha \in (0, 1)$ |
+Users: hackathon judges, reinsurer prototype reviewers, developers.  
+Out of scope users: production pricing desks without recalibration.
 
 ---
 
-## Outputs and Metrics
-- **AAL (Average Annual Loss)**: Expected annual loss across all simulated Monte Carlo years.
-- **OEP / AEP Curves**: Occurrence Exceedance Probability and Aggregate Exceedance Probability curves across 10-year to 500-year return periods.
-- **VaR / TVaR ($\alpha = 0.996$)**: Value at Risk and Tail Value at Risk at the 1-in-250 year return period.
-- **Euler Policy Tail Allocation**: Additive policy tail risk attribution reconciling exactly to portfolio TVaR.
-- **CRN Marginal TVaR**: Non-additive marginal impact evaluated via Common Random Numbers ($TVaR(\mathcal{P}) - TVaR(\mathcal{P} \setminus \{k\})$).
-- **Technical Pricing Waterfall**: Expected Loss + Cost of Capital Tail Charge + Expense Loading.
-- **Cryptographic Audit Trail**: Immutable SHA-256 hash-chained decision records in SQLite.
+## 2. Model details
+
+| Component | Type | Train? | LLM? |
+|-----------|------|--------|------|
+| HazardModel | Gradient-boosted tree (XGBoost / LightGBM) | Yes | No |
+| VulnerabilityModel | Tree / regressor on depth + housing class (+ features) | Yes | No |
+| Depth / EP / AAL / accumulation | Deterministic formulas | No | No |
+| Agents (ingest, brief, query) | Ollama instruct (e.g. `qwen2.5:3b-instruct`) | No | Yes |
+
+Artifacts: `models/hazard/{version}/`, `models/vulnerability/{version}/` with SHA-256 registry.  
+Run payloads store pinned versions and lineage.
 
 ---
 
-## Modeling Limitations & Scientific Disclosures
-1. **Prototype Hazard Representation**: Synthetic flood extent footprints utilize radial exponential decay and benchmark flood footprints rather than 2D hydrodynamic Saint-Venant hydraulic simulations.
-2. **Benchmark Vulnerability Curves**: Depth-damage relationships utilize international engineering benchmark curves (FEMA/USACE prototype equivalents) adjusted with construction modifiers, rather than empirical Kenya claims loss histories.
-3. **Absence of Kenya Claims Calibration**: Losses are estimated for portfolio comparison and demonstration; historical loss settlement data from Kenya Re has not been fitted to the damage functions.
-4. **Sample Support at Tail**: At $\alpha = 0.996$, a 10,000-year simulation provides 40 tail observations; a 1,000-year run provides only 4 tail observations. The sample depth is visibly disclosed in the UI.
+## 3. Training data
+
+| Source | Role | Honest label |
+|--------|------|--------------|
+| `exposure_nairobi_with_hazard.csv` (600 locs) | Exposure + starter scores | **Synthetic** |
+| `nairobi_pluvial_proxy_*.tif` | Susceptibility targets / features | **Proxy** (0–1) |
+| `nairobi_hotspots_geocoded.csv` (24) | Uplift / QA | Named list; proxy ≈ **12/24** |
+| Optional OSM waterways | Distance features | OpenStreetMap; completeness UNKNOWN |
+| JRC/Huizinga-adapted curves | Vuln prior / synthetic labels | **BENCHMARK** adapted |
+
+Hazard and vulnerability ML labels are **synthetic** (proxy + uplift + prior ± noise). They are **not** Nairobi flood gauges or claims.
 
 ---
 
-## Ethical & Governance Principles
-- **Explainability**: Every underwriting recommendation provides a deterministic 7-step mathematical trace and key risk factor breakdown.
-- **Human Primacy**: AI agents recommend; certified human underwriters decide. Any modification or rejection of technical pricing mandates an auditable rationale.
-- **Tamper Evidence**: All decisions are hashed with their predecessor in an append-only cryptographic ledger.
+## 4. Evaluation (prototype expectations)
+
+| Check | Expectation |
+|-------|-------------|
+| Monotonic damage vs depth (prior / model) | Non-decreasing within housing class (tests) |
+| EP reconciliation | Tier losses map consistently to RP table |
+| Pinning model version | Changes predictions → changes GU / EP; delta auditable |
+| Proxy hotspot QA | Document ~12/24; do not hide misses |
+| Narrative validation | Invented numbers rejected; template fallback |
+
+Full quantitative backtest against historical Nairobi floods: **not available** (UNKNOWN calibration).
+
+---
+
+## 5. Limitations & risks
+
+- Proxy rasters miss some drainage-driven hotspots  
+- `D_max = 4 m` and RP map are **PROTOTYPE**  
+- Synthetic TIV / housing mix ≠ real Nairobi portfolio  
+- SHAP explains the synthetic-label model, not physics  
+- Small Ollama models may hallucinate prose; numbers are gated  
+- Render RAM limits may force 1.5B–3B quantized models or template degrade  
+
+**Ethics:** Do not use outputs to deny coverage or set premiums on real lives without human review, recalibration, and governance (see RISK_GOVERNANCE.md).
+
+---
+
+## 6. Environmental / compute notes
+
+Training: modest CPU/GPU for XGBoost on 600 locations — lightweight.  
+Inference: per-run predict + optional SHAP.  
+LLM: local Ollama; default small instruct; temperature 0 for structured paths.
+
+---
+
+## 7. Citation / provenance
+
+- Exposure & proxy kit: `Nairobi_Data/` (hackathon starter; synthetic)  
+- Vulnerability prior: JRC / Huizinga depth–damage literature (adapted)  
+- Architecture & security patterns: kenyaRE-hard (RBAC, prompt defence, audit)  
+- Register: ASSUMPTIONS.md · Methodology: METHODOLOGY.md · XAI: EXPLAINABILITY.md
+
+Update this card when model versions or label provenance change.

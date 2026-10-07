@@ -1,101 +1,100 @@
-# FLOODTAIL — Deployment & Operation Manual
+# DEPLOYMENT — Nairobi CAT API (no Streamlit)
 
-## System Requirements
-- **Operating System**: Windows 10/11, macOS (Apple Silicon / Intel), or Linux (Ubuntu 22.04 LTS+)
-- **Python Runtime**: Python 3.10 to 3.14 (Verified in development on Python 3.14.5)
-- **RAM**: 4 GB minimum (8 GB recommended for 10,000-year simulations)
-- **Disk Space**: ~500 MB for repository, dependencies, and demo artifacts
-- **Network**: Completely self-contained / zero-cloud dependency; operates 100% offline.
+Deploy and run the FastAPI backend with Ollama, Keycloak, and Postgres. Next.js (`apps/web`) remains an **empty scaffold** — do not deploy a UI feature set yet.
 
 ---
 
-## 1. Quick Start Installation
+## Local: Docker Compose
+
+Expected services in `docker-compose.yml`:
+
+| Service | Role |
+|---------|------|
+| `api` | FastAPI (`apps.api.main`) |
+| `postgres` | Portfolios, runs, audit (SQLite fallback for API-only local) |
+| `keycloak` | JWT issuer; RBAC roles |
+| `ollama` | Local instruct models for agents |
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/MuhiriChachaDev/floodtail.git
-cd floodtail
-
-# 2. Create and activate virtual environment
-python -m venv .venv
-
-# Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-
-# Linux / macOS:
-source .venv/bin/activate
-
-# 3. Install dependencies
-pip install --upgrade pip
-pip install -r requirements.txt
+cp .env.example .env
+# Set KEYCLOAK_*, OLLAMA_HOST, DATABASE_URL, AES keys, CORS origins
+docker compose up --build
 ```
+
+- API: `http://localhost:8000` · docs: `/docs`  
+- Health: `GET /v1/health` (liveness + ollama + model registry)  
+- Pull model once: `docker compose exec ollama ollama pull qwen2.5:3b-instruct`
+
+**No Streamlit.** Do not run `streamlit run` or look for `app.py` UI.
 
 ---
 
-## 2. Running FLOODTAIL
+## Environment (minimum)
 
-### A. Web Application (Streamlit GUI)
-Launch the full interactive enterprise reinsurance platform:
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Postgres DSN (or SQLite path for local) |
+| `OLLAMA_HOST` | e.g. `http://ollama:11434` |
+| `OLLAMA_MODEL` | Default `qwen2.5:3b-instruct` |
+| `KEYCLOAK_URL` / realm / client | JWT validation |
+| `CORS_ORIGINS` | Lockdown; no `*` in prod |
+| `AES_KEY` / secrets | PII at rest |
+| `ASSUMPTIONS_VERSION` | e.g. `nairobi-pluvial-v1` |
 
-```bash
-streamlit run app.py
-```
-- The browser will automatically open to `http://localhost:8501`.
-- In the sidebar, click **🎯 Demo** to immediately execute and load the frozen 10,000-year demonstration pipeline.
-
-### B. Headless CLI Bootstrap & Smoke Test
-To verify database, configuration, and environment integrity headlessly:
-
-```bash
-python app.py
-```
-Output:
-```
-FLOODTAIL backend bootstrap complete. Run ID: <UUID>
-```
-
-### C. Automated Test Suite Execution
-Execute the entire regression and validation suite:
-
-```bash
-pytest -v
-```
-All 128 tests across foundation, data layer, catastrophe engine, risk analytics, agent workflow, and frontend smoke will execute and pass.
+Secrets via env / secret manager only — never commit `.env`.
 
 ---
 
-## 3. Operational Modes
+## Ollama notes
 
-### 🎯 Demo Mode (Frozen Championship Data)
-- **Pre-configured Dataset**: 22 diverse commercial and residential policies across Nairobi, Mombasa, and Kisumu (`data/demo/portfolio_ab_demo.csv`).
-- **Pre-configured Hazard & Events**: 80,161 loss occurrences across 10,000 simulated years.
-- **Speed**: Executes in ~25 seconds on first run, cached in session state for instant sub-second page transitions.
-- **Purpose**: High-reliability presentations, judge demonstrations, and stakeholder rehearsals.
-
-### 📡 Live Mode (Custom Ingestion)
-- Underwriters can upload raw custom portfolios (CSV / Parquet).
-- Automatic schema mapping and validation via `SchemaMapper`.
-- 11-rule data quality audit and automated coordinate swapping detection via `DataQualityAuditor`.
-- Dynamic catastrophe simulation and risk calculation on user-provided assets.
+- Prefer 1.5B–3B quantized instruct for RAM (Render-friendly).  
+- Temperature 0 for structured agents / narratives.  
+- If Ollama is down: agents → templates; **runs still complete** (ML + `cat_core`).  
+- Models are **not** used for EP / AAL / premium numbers.
 
 ---
 
-## 4. Offline Fallback & Championship Defense Plan
-If presentation venue WiFi fails, external networks drop, or cloud services disconnect:
-1. FLOODTAIL requires **zero internet access**. All geospatial mathematics, Plotly charts, SQLite databases, and agent pipelines run locally on `localhost`.
-2. A backup copy of the repository and demo databases is archived locally in `data/demo/`.
-3. If port 8501 is busy:
-   ```bash
-   streamlit run app.py --server.port=8502
-   ```
+## Keycloak / Auth
+
+- Compose: Keycloak realm with roles: `admin`, `actuary`, `underwriter`, `client_viewer`, `regulator`, `data_scientist`, `auditor`.  
+- Every route JWT-protected except documented health (liveness may be public; readiness can require auth).  
+- **Prod:** no anonymous default role.  
+- Train endpoints: `data_scientist` / `admin` only.
 
 ---
 
-## 5. Troubleshooting Guide
+## Render
 
-| Issue | Root Cause | Resolution |
-|:---|:---|:---|
-| `No module named 'streamlit'` | Virtual environment not activated | Run `.venv\Scripts\Activate.ps1` (or `source .venv/bin/activate`). |
-| `missing ScriptRunContext` | Running Streamlit code inside bare Python | Safe to ignore; headless CLI mode detects bare execution via `st.runtime.exists()`. |
-| Port 8501 already in use | Another background process running | Use `streamlit run app.py --server.port=8502`. |
-| SQLite `database locked` | Concurrent process accessing SQLite DB | Ensure background test tasks are terminated. |
+Suggested layout:
+
+1. **Web service** — FastAPI API  
+2. **Private service / sidecar** — Ollama (+ baked or pulled model)  
+3. **Managed Postgres**  
+4. **Keycloak** — sibling service or external OIDC with same RBAC claims  
+
+```
+API  --OLLAMA_HOST-->  Ollama private service
+API  --JWT---------->  Keycloak / OIDC
+API  --DATABASE_URL->  Postgres
+```
+
+Checklist:
+
+- [ ] Secrets in Render env  
+- [ ] Healthchecks on API (+ optional Ollama ping from `/v1/health`)  
+- [ ] CORS limited to known origins (empty Next.js later)  
+- [ ] Disk or object storage for `models/` artifacts (or bake demo versions)  
+- [ ] `Nairobi_Data/` available in image or mounted volume  
+
+If RAM is tight: smaller model or template-only agents on Render free tiers.
+
+---
+
+## What not to deploy
+
+- Streamlit (`app.py`, `ui/`) — removed  
+- Kenya radial Monte Carlo demo path as product  
+- Full Next.js underwriter UI — scaffold only until API contracts freeze  
+- Celery / MinIO medallion / LangSmith theatre  
+
+See `IMPLEMENTATION_PLAN.md` and `ROADMAP.md` for phase gates.
