@@ -68,11 +68,11 @@ export default function LoginPage() {
           </ul>
         </section>
 
-        <section className="glass mx-auto w-full max-w-md rounded-3xl p-7 sm:p-8">
+        <section className="glass mx-auto w-full max-w-md rounded-2xl p-5 sm:rounded-3xl sm:p-8">
           <div className="mb-6 flex items-center gap-3">
-            <KenyaReLogo variant="white" heightClass="h-10" />
-            <div className="border-l border-white/15 pl-3">
-              <p className="font-display text-lg font-semibold">FLOODTAIL</p>
+            <KenyaReLogo variant="white" heightClass="h-9 sm:h-10" />
+            <div className="min-w-0 border-l border-white/15 pl-3">
+              <p className="font-display text-base font-semibold sm:text-lg">FLOODTAIL</p>
               <p className="text-xs text-white/45">Secure Kenya Re environment</p>
             </div>
           </div>

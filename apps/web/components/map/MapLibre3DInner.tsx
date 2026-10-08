@@ -31,9 +31,12 @@ type Props = {
   onSelect: (id: string) => void;
   /** When true, camera fits uploaded/live coordinates (any Kenyan city). */
   fitToData?: boolean;
+  /** Prefer this center when points are empty (from portfolio bbox). */
+  fallbackCenter?: [number, number] | null;
 };
 
-const KENYA_FALLBACK: [number, number] = [36.82, -1.29];
+/** Kenya geographic midpoint — only when no portfolio bbox is known. */
+const KENYA_FALLBACK: [number, number] = [37.0, 0.5];
 
 /** Half-width of extruded footprint in degrees (~55 m). */
 const FOOTPRINT = 0.0005;
@@ -352,13 +355,28 @@ export default function MapLibre3DInner({
   selectedId,
   onSelect,
   fitToData = true,
+  fallbackCenter = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
-  const dataRef = useRef({ points, hotspots, mode, selectedId, fitToData });
-  dataRef.current = { points, hotspots, mode, selectedId, fitToData };
+  const dataRef = useRef({
+    points,
+    hotspots,
+    mode,
+    selectedId,
+    fitToData,
+    fallbackCenter,
+  });
+  dataRef.current = {
+    points,
+    hotspots,
+    mode,
+    selectedId,
+    fitToData,
+    fallbackCenter,
+  };
   const readyRef = useRef(false);
   const fittedKeyRef = useRef<string>("");
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -375,7 +393,7 @@ export default function MapLibre3DInner({
     const seed = dataRef.current.points[0];
     const center: [number, number] = seed
       ? [seed.lon, seed.lat]
-      : KENYA_FALLBACK;
+      : dataRef.current.fallbackCenter ?? KENYA_FALLBACK;
 
     try {
       if (typeof window !== "undefined") {

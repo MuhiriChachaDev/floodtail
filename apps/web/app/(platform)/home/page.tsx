@@ -13,7 +13,7 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      <Hero />
+      <Hero place={view.place} hasLiveBook={view.hasRun} />
 
       <section id="command-center" className="scroll-mt-24 space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

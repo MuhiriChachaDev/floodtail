@@ -113,3 +113,94 @@ export function boundsFromPoints(
     [maxLon + padLon, maxLat + padLat],
   ];
 }
+
+/** Parse a simple portfolio CSV (header + rows) into map points. */
+export function parsePortfolioCsvToPoints(text: string): PortfolioPoint[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  const idx = (name: string) => headers.indexOf(name);
+  const iLat = idx("lat");
+  const iLon = idx("lon");
+  if (iLat < 0 || iLon < 0) return [];
+  const iId = idx("loc_id");
+  const iHousing = idx("housing_class");
+  const iTiv = idx("tiv_kes");
+  const iHazSev = idx("hazard_score_severe");
+  const iHazExt = idx("hazard_score_extreme");
+  const iSyn = idx("synthetic");
+
+  const out: PortfolioPoint[] = [];
+  for (const line of lines.slice(1)) {
+    const cols = line.split(",");
+    const lat = Number(cols[iLat]);
+    const lon = Number(cols[iLon]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const hazard = Math.max(
+      Number(cols[iHazExt] ?? 0) || 0,
+      Number(cols[iHazSev] ?? 0) || 0,
+    );
+    const value = Number(cols[iTiv] ?? 0) || 0;
+    out.push({
+      id: iId >= 0 ? String(cols[iId] || `${lat}_${lon}`) : `${lat}_${lon}`,
+      lat,
+      lon,
+      asset: "residential",
+      housing: iHousing >= 0 ? String(cols[iHousing] || "unknown") : "unknown",
+      value_kes: value,
+      hazard_severe: hazard,
+      insured: true,
+      confidence: "high",
+      synthetic: iSyn >= 0 ? /true|1|yes/i.test(String(cols[iSyn])) : false,
+      depth: Math.min(3.2, hazard * 3.5),
+      loss_kes: value * hazard * 0.35,
+    });
+  }
+  return out;
+}
+
+/**
+ * Center [lon, lat] from ingest bbox (min_lat, min_lon, max_lat, max_lon).
+ */
+export function centerFromBbox(
+  bbox: number[] | null | undefined,
+): [number, number] | null {
+  if (!Array.isArray(bbox) || bbox.length < 4) return null;
+  const [minLat, minLon, maxLat, maxLon] = bbox.map(Number);
+  if (
+    ![minLat, minLon, maxLat, maxLon].every((n) => Number.isFinite(n))
+  ) {
+    return null;
+  }
+  return [(minLon + maxLon) / 2, (minLat + maxLat) / 2];
+}
+
+/**
+ * Last-resort hydrate for the shipped Kisumu *sample* CSV only — never for an
+ * arbitrary Kisumu-labelled custom upload (would paint the wrong book).
+ */
+export async function tryHydrateDemoSamplePoints(opts: {
+  place: string;
+  portfolioName?: string;
+  portfolioSource?: string;
+  nRows?: number;
+}): Promise<PortfolioPoint[]> {
+  if (!/kisumu/i.test(opts.place)) return [];
+  const name = `${opts.portfolioName ?? ""} ${opts.portfolioSource ?? ""}`;
+  const looksLikeSample =
+    /kisumu[-_ ]?demo|sample|demo kisumu/i.test(name) ||
+    opts.nRows === 12;
+  if (!looksLikeSample) return [];
+  try {
+    const res = await fetch("/samples/kisumu-demo-portfolio.csv", {
+      cache: "force-cache",
+    });
+    if (!res.ok) return [];
+    return parsePortfolioCsvToPoints(await res.text());
+  } catch {
+    return [];
+  }
+}

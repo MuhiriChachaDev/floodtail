@@ -30,7 +30,7 @@ export default function DataQualityPage() {
       <Notice>
         {view.hasRun
           ? `Checking the last upload for ${view.place}. Map columns use that portfolio’s coordinates.`
-          : "Icons on the map show building types. Upload a portfolio to replace the Nairobi demo."}
+          : "Icons on the map show building types. Upload a portfolio to drive the map for that place."}
       </Notice>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

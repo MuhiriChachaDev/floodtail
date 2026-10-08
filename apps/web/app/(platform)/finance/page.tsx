@@ -22,20 +22,35 @@ export default function FinancePage() {
   const [load, setLoad] = useState(1.25);
 
   useEffect(() => {
-    const last = loadLastTestRun();
-    const resolved = resolveEpMetrics(last?.metrics, {
-      runId: last?.runId,
-      locationLabel: last?.place || last?.portfolio.location_label,
-    });
-    setEp(resolved);
-    if (resolved.pricing?.load_factor) {
-      setLoad(resolved.pricing.load_factor);
-    }
+    const reload = () => {
+      const last = loadLastTestRun();
+      const resolved = resolveEpMetrics(last?.metrics, {
+        runId: last?.runId,
+        locationLabel: last?.place || last?.portfolio.location_label,
+      });
+      setEp(resolved);
+      if (resolved.pricing?.load_factor) {
+        setLoad(resolved.pricing.load_factor);
+      }
+    };
+    reload();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "floodtail.lastTestRun.v1") reload();
+    };
+    const onRun = () => reload();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onRun);
+    window.addEventListener("floodtail:last-run", onRun);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onRun);
+      window.removeEventListener("floodtail:last-run", onRun);
+    };
   }, []);
 
   const resolved =
     ep ??
-    resolveEpMetrics(null, { locationLabel: "Nairobi County (demo)" });
+    resolveEpMetrics(null, { locationLabel: "Demo portfolio" });
   const fin = resolved.financial;
   const layer = referenceLayer(fin);
   const isLive = resolved.source === "run";
@@ -149,15 +164,15 @@ export default function FinancePage() {
               />
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-white/10">
-              <table className="min-w-full text-left text-sm">
+            <div className="-mx-1 overflow-x-auto rounded-2xl border border-white/10 sm:mx-0">
+              <table className="w-full min-w-[520px] text-left text-sm">
                 <thead className="border-b border-white/10 text-xs text-white/50">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Tier</th>
-                    <th className="px-4 py-3 font-medium">RP</th>
-                    <th className="px-4 py-3 font-medium">Gross</th>
-                    <th className="px-4 py-3 font-medium">Recovery</th>
-                    <th className="px-4 py-3 font-medium">Net</th>
+                    <th className="px-3 py-3 font-medium sm:px-4">Tier</th>
+                    <th className="px-3 py-3 font-medium sm:px-4">RP</th>
+                    <th className="px-3 py-3 font-medium sm:px-4">Gross</th>
+                    <th className="px-3 py-3 font-medium sm:px-4">Recovery</th>
+                    <th className="px-3 py-3 font-medium sm:px-4">Net</th>
                   </tr>
                 </thead>
                 <tbody>

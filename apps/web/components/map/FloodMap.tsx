@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { clsx } from "clsx";
 import { Pause, Play } from "lucide-react";
@@ -11,9 +11,11 @@ import {
   patchLastTestRunMapPoints,
 } from "@/lib/run-store";
 import {
+  centerFromBbox,
   floodRiskScore,
   propertyRowToPoint,
   RISK_COLORS,
+  tryHydrateDemoSamplePoints,
   type PortfolioPoint,
 } from "@/lib/map-portfolio";
 import { assetEmoji, classLabel, formatKes } from "@/lib/format";
@@ -80,9 +82,13 @@ export function FloodMap({
   const [selected, setSelected] = useState<string | null>(null);
   const [livePoints, setLivePoints] = useState<PortfolioPoint[] | null>(null);
   const [liveMeta, setLiveMeta] = useState<LiveMeta | null>(null);
+  const [fallbackCenter, setFallbackCenter] = useState<[number, number] | null>(
+    null,
+  );
   const [loadState, setLoadState] = useState<
     "idle" | "loading" | "live" | "cache" | "demo" | "missing"
   >("idle");
+  const liveRunIdRef = useRef<string | null>(null);
 
   const applyLive = useCallback(
     (
@@ -90,6 +96,7 @@ export function FloodMap({
       last: NonNullable<ReturnType<typeof loadLastTestRun>>,
       source: LiveMeta["source"],
     ) => {
+      liveRunIdRef.current = last.runId;
       setLivePoints(mapped);
       setLiveMeta({
         place: last.place || last.portfolio.location_label || "Uploaded portfolio",
@@ -98,11 +105,11 @@ export function FloodMap({
         synthetic: Boolean(last.portfolio.synthetic),
         source,
       });
+      setFallbackCenter(centerFromBbox(last.portfolio.ingest_stats?.bbox));
       setLoadState(source === "cache" ? "cache" : "live");
       setSelected(null);
-      if (source !== "cache") {
-        patchLastTestRunMapPoints(mapped);
-      }
+      // Persist so the next visit (or API restart) keeps this geography.
+      patchLastTestRunMapPoints(mapped);
     },
     [],
   );
@@ -110,18 +117,37 @@ export function FloodMap({
   const reloadLive = useCallback(async () => {
     const last = loadLastTestRun();
     if (!last?.runId) {
+      liveRunIdRef.current = null;
       setLivePoints(null);
       setLiveMeta(null);
+      setFallbackCenter(null);
       setLoadState("demo");
       return;
     }
 
     const place =
       last.place || last.portfolio.location_label || "Uploaded portfolio";
+    const bboxCenter = centerFromBbox(last.portfolio.ingest_stats?.bbox);
+    setFallbackCenter(bboxCenter);
+
+    // Drop previous city's columns immediately when a new upload lands.
+    if (liveRunIdRef.current && liveRunIdRef.current !== last.runId) {
+      setLivePoints([]);
+      setLiveMeta({
+        place,
+        runId: last.runId,
+        nRows: 0,
+        synthetic: Boolean(last.portfolio.synthetic),
+        source: "cache",
+      });
+    }
+    liveRunIdRef.current = last.runId;
     setLoadState("loading");
 
     // 1) Fresh scored rows from the last run
     const runPayload = await fetchRunProperties(last.runId, { limit: 600 });
+    // Ignore stale responses if a newer upload landed while we were fetching.
+    if (liveRunIdRef.current !== last.runId) return;
     const fromRun = mapRows(runPayload?.properties);
     if (fromRun.length) {
       applyLive(fromRun, last, "run");
@@ -133,6 +159,7 @@ export function FloodMap({
       const portPayload = await fetchPortfolioProperties(last.portfolio.id, {
         limit: 600,
       });
+      if (liveRunIdRef.current !== last.runId) return;
       const fromPort = mapRows(portPayload?.properties);
       if (fromPort.length) {
         applyLive(fromPort, last, "portfolio");
@@ -142,11 +169,24 @@ export function FloodMap({
 
     // 3) Coordinates cached with the last test run in localStorage
     if (last.mapPoints?.length) {
+      if (liveRunIdRef.current !== last.runId) return;
       applyLive(last.mapPoints, last, "cache");
       return;
     }
 
-    // 4) Keep the place label — never silently show Nairobi demo for another book
+    // 4) Shipped Kisumu sample only when this book looks like that demo
+    const fromSample = await tryHydrateDemoSamplePoints({
+      place,
+      portfolioName: last.portfolio.name,
+      portfolioSource: last.portfolio.source,
+      nRows: last.portfolio.n_rows,
+    });
+    if (fromSample.length) {
+      applyLive(fromSample, last, "cache");
+      return;
+    }
+
+    // 5) Keep the place label — never silently show Nairobi demo for another book
     setLivePoints([]);
     setLiveMeta({
       place,
@@ -256,9 +296,9 @@ export function FloodMap({
 
   return (
     <div className={clsx("glass relative overflow-hidden rounded-2xl", className)}>
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <div>
-          <h3 className="section-title text-base uppercase tracking-[0.12em]">
+      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-white/10 px-3 py-3 sm:px-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="section-title text-sm uppercase tracking-[0.12em] sm:text-base">
             {title}
           </h3>
           <p className="text-xs text-white/45">
@@ -271,13 +311,13 @@ export function FloodMap({
             · {modeHint}
           </p>
         </div>
-        <span className="chip text-risk">
+        <span className="chip shrink-0 text-risk">
           <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-risk" />
           {statusChip}
         </span>
       </div>
 
-      <div className="map-shell relative h-[420px] sm:h-[520px]">
+      <div className="map-shell relative h-[min(55vh,360px)] min-h-[280px] sm:h-[520px] sm:min-h-0">
         {loadState === "missing" ? (
           <div className="absolute inset-0 z-[400] flex items-center justify-center bg-night-950/70 px-6 text-center backdrop-blur-sm">
             <p className="max-w-sm text-sm text-white/70">
@@ -288,7 +328,7 @@ export function FloodMap({
           </div>
         ) : null}
         <Map3D
-          key={`${basemap}-${hasLiveBook ? liveMeta?.runId : "demo"}-${usingLive ? "pts" : "empty"}`}
+          key={`${basemap}-${hasLiveBook ? liveMeta?.runId : "demo"}-${usingLive ? "pts" : "empty"}-${fallbackCenter?.join(",") ?? "k"}`}
           mode={mode}
           basemap={basemap}
           points={points}
@@ -296,9 +336,10 @@ export function FloodMap({
           selectedId={selected}
           onSelect={setSelected}
           fitToData
+          fallbackCenter={fallbackCenter}
         />
 
-        <div className="pointer-events-none absolute right-3 top-3 z-[500] rounded-xl border border-white/10 bg-night-950/80 p-3 text-xs backdrop-blur">
+        <div className="pointer-events-none absolute right-2 top-2 z-[500] hidden rounded-xl border border-white/10 bg-night-950/80 p-2.5 text-xs backdrop-blur sm:right-3 sm:top-3 sm:block sm:p-3">
           <p className="mb-2 font-semibold uppercase tracking-wide text-white/60">
             Flood risk
           </p>
@@ -341,12 +382,12 @@ export function FloodMap({
           <p className="mt-2 text-[10px] text-white/40">Height = covered TIV</p>
         </div>
 
-        <div className="absolute left-3 top-14 z-[500] flex gap-2 sm:top-3 sm:left-14">
+        <div className="absolute left-2 top-2 z-[500] flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5 sm:left-14 sm:top-3 sm:gap-2">
           <button
             type="button"
             onClick={() => setBasemap("streets")}
             className={clsx(
-              "rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur",
+              "rounded-full px-2.5 py-1.5 text-[11px] font-medium backdrop-blur sm:px-3 sm:text-xs",
               basemap === "streets"
                 ? "bg-accent text-night-950"
                 : "border border-white/15 bg-night-950/70 text-white/70",
@@ -358,7 +399,7 @@ export function FloodMap({
             type="button"
             onClick={() => setBasemap("satellite")}
             className={clsx(
-              "rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur",
+              "rounded-full px-2.5 py-1.5 text-[11px] font-medium backdrop-blur sm:px-3 sm:text-xs",
               basemap === "satellite"
                 ? "bg-accent text-night-950"
                 : "border border-white/15 bg-night-950/70 text-white/70",
@@ -368,12 +409,12 @@ export function FloodMap({
           </button>
         </div>
 
-        <div className="absolute bottom-3 left-3 z-[500] flex gap-2">
+        <div className="absolute bottom-2 left-2 z-[500] flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5 sm:bottom-3 sm:left-3 sm:gap-2">
           <button
             type="button"
             onClick={() => setInsuredOnly(true)}
             className={clsx(
-              "rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur",
+              "rounded-full px-2.5 py-1.5 text-[11px] font-medium backdrop-blur sm:px-3 sm:text-xs",
               insuredOnly
                 ? "bg-accent text-night-950"
                 : "border border-white/15 bg-night-950/70 text-white/70",
@@ -385,7 +426,7 @@ export function FloodMap({
             type="button"
             onClick={() => setInsuredOnly(false)}
             className={clsx(
-              "rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur",
+              "rounded-full px-2.5 py-1.5 text-[11px] font-medium backdrop-blur sm:px-3 sm:text-xs",
               !insuredOnly
                 ? "bg-accent text-night-950"
                 : "border border-white/15 bg-night-950/70 text-white/70",

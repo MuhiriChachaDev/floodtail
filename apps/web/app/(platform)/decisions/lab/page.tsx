@@ -73,22 +73,22 @@ export default function DecisionLabPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="glass grid grid-cols-3 gap-3 rounded-2xl p-5">
+        <div className="glass grid grid-cols-1 gap-3 rounded-2xl p-4 sm:grid-cols-3 sm:p-5">
           <div>
             <p className="text-xs text-white/45">Covered value</p>
-            <p className="mt-1 font-display text-lg text-white">
+            <p className="mt-1 break-words font-display text-base text-white sm:text-lg">
               {formatKes(opt.exposure)}
             </p>
           </div>
           <div>
             <p className="text-xs text-white/45">Expected yearly loss</p>
-            <p className="mt-1 font-display text-lg text-white">
+            <p className="mt-1 break-words font-display text-base text-white sm:text-lg">
               {formatKes(opt.yearly)}
             </p>
           </div>
           <div>
             <p className="text-xs text-white/45">Capital view</p>
-            <p className="mt-1 font-display text-lg text-white">
+            <p className="mt-1 break-words font-display text-base text-white sm:text-lg">
               {formatKes(opt.capital)}
             </p>
           </div>

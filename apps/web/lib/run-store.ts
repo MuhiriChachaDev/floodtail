@@ -54,6 +54,14 @@ export function saveLastTestRun(
 export function patchLastTestRunMapPoints(mapPoints: PortfolioPoint[]): LastTestRun | null {
   const current = loadLastTestRun();
   if (!current?.runId || !mapPoints.length) return current;
+  // Skip no-op writes so FloodMap reload listeners do not loop.
+  if (
+    current.mapPoints?.length === mapPoints.length &&
+    current.mapPoints[0]?.id === mapPoints[0]?.id &&
+    current.mapPoints[0]?.lat === mapPoints[0]?.lat
+  ) {
+    return current;
+  }
   const next: LastTestRun = { ...current, mapPoints };
   emitSaved(next);
   return next;

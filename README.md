@@ -2,16 +2,9 @@
 
 Reinsurance-oriented **Nairobi County pluvial flood** catastrophe prototype for the Team A Urban Flood Challenge.
 
-<<<<<<< HEAD
-**Release**: `FLOODTAIL Grade 1 Commercial Release v1.0.0`  
-**Test Suite**: 141 / 141 Passed (100% Deterministic Actuarial Green)  
-**Supported Runtimes**: Python 3.10 – 3.14 (Verified on Python 3.14.5)  
-**Primary Currency Base**: Kenya Shillings (KES) with multi-currency normalizer (USD, EUR, GBP)  
-=======
 **Pipeline:** Hazard → Vulnerability → Exposure → Financial engine → EP / return-period curve
 
 **AI posture (option 3):** trained predictive ML (hazard + vulnerability) **and** agentic AI (Ollama) around a **deterministic financial / EP core**. LLMs never invent loss, EP, AAL, or premium numbers.
->>>>>>> c3d0325909f5ce2a26452beab68b6bc838e8167d
 
 ---
 
@@ -109,30 +102,6 @@ Typical flow:
 
 ## Docs map
 
-<<<<<<< HEAD
-Run all 141 tests:
-```bash
-pytest -v
-```
-
-```
-======================= 141 passed in 117.62s (0:01:57) =======================
-```
-
-| Test File | Tests | Coverage |
-|:---|:---:|:---|
-| `tests/test_foundation.py` | 30 | Pydantic schemas, data contracts, config, bootstrap smoke |
-| `tests/test_data_layer.py` | 27 | SQLite CRUD, schema mapper, normalizer, quality auditor |
-| `tests/test_catastrophe_engine.py`| 22 | Poisson simulator, hazard intersection, vulnerability, ELT/YLT |
-| `tests/test_risk_analytics.py` | 18 | AAL, OEP/AEP, VaR/TVaR, Euler allocation, pricing waterfall, CRN |
-| `tests/test_agent_workflow.py` | 20 | 11-agent sequential orchestrator, governance, trace validation |
-| `tests/test_frontend_smoke.py` | 11 | UI components, 16-page catalogue, Plotly charts, audit verification |
-| `tests/test_uncertainty.py` | 4 | YLT bootstrap uncertainty corridors (AAL, TVaR, Premium) |
-| `tests/test_skeptic.py` | 2 | Adversarial red-team stress testing & assumption sensitivity |
-| `tests/test_grounding.py` | 2 | Numeric Grounding Guard & AI hallucination prevention |
-| `tests/test_shadow_exposure.py` | 2 | Protection gap & regional density multiplier modeling |
-| `tests/test_treaty.py` | 3 | Reinsurance treaty layering (Cedant retention & Cat XOL layers) |
-=======
 | Doc | Purpose |
 |-----|---------|
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Locked architecture, phases, API contract |
@@ -146,7 +115,6 @@ pytest -v
 | [RISK_GOVERNANCE.md](RISK_GOVERNANCE.md) | Human-in-loop, RBAC, audit |
 | [DEMO_SCRIPT.md](DEMO_SCRIPT.md) | Judge demo against API/metrics |
 | [Team_A_Nairobi_Problem_Statement.docx](Team_A_Nairobi_Problem_Statement.docx) | Hackathon problem authority |
->>>>>>> c3d0325909f5ce2a26452beab68b6bc838e8167d
 
 ---
 

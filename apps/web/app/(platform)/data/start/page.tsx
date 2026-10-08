@@ -25,6 +25,7 @@ import {
   createBuiltinPortfolio,
   createRun,
   fetchHealth,
+  fetchPortfolioProperties,
   fetchRunProperties,
   searchKnowledge,
   uploadKnowledgeDocument,
@@ -36,20 +37,35 @@ import {
 } from "@/lib/api";
 import { formatKes } from "@/lib/format";
 import { heavyRainLosses, resolveEpMetrics } from "@/lib/ep-metrics";
-import { propertyRowToPoint } from "@/lib/map-portfolio";
+import { propertyRowToPoint, type PortfolioPoint } from "@/lib/map-portfolio";
 import { loadLastTestRun, saveLastTestRun, type LastTestRun } from "@/lib/run-store";
 import { clsx } from "clsx";
 
+function rowsToMapPoints(
+  rows: Parameters<typeof propertyRowToPoint>[0][] | undefined,
+): PortfolioPoint[] {
+  if (!rows?.length) return [];
+  return rows
+    .map((row) => propertyRowToPoint(row))
+    .filter((p): p is PortfolioPoint => p != null);
+}
+
+function hazardCoverageNote(portfolio: PortfolioPayload): string | null {
+  const warnings = portfolio.extra?.warnings ?? [];
+  const hit = warnings.find((w) =>
+    /HAZARD_ZERO_FILL|outside raster|No hazard rasters overlap|kept CSV hazard/i.test(
+      w,
+    ),
+  );
+  if (!hit) return null;
+  return (
+    "Hazard coverage note: city-matched rasters may be missing for this place. " +
+    "Keep hazard_score_* columns in the CSV or losses can be near zero."
+  );
+}
+
 type Phase = "idle" | "uploading" | "running" | "done" | "error";
 type UploadMode = "csv" | "pdf";
-
-const PIPELINE_STEPS = [
-  "Check data",
-  "Flood scores",
-  "Damage & loss",
-  "Risk figures",
-  "Briefing",
-];
 
 type RagDelivery = {
   document: KnowledgeDocumentResult;
@@ -64,7 +80,6 @@ export default function DataStartPage() {
   const [file, setFile] = useState<File | null>(null);
   const [place, setPlace] = useState("Kisumu");
   const [portfolioName, setPortfolioName] = useState("");
-  const [notes, setNotes] = useState("");
   const [ragQuery, setRagQuery] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [statusMsg, setStatusMsg] = useState("");
@@ -99,22 +114,38 @@ export default function DataStartPage() {
       "Running the full flood pipeline (hazard → damage → loss → risk). Please wait 30–60 seconds — do not refresh…",
     );
     const runResult = await createRun(portfolio.id);
-    // Cache scored lat/lon so Home / FloodMap keep this place after API restart.
-    let mapPoints = undefined;
-    try {
-      const props = await fetchRunProperties(runResult.run.id, { limit: 600 });
-      mapPoints = props?.properties
-        ?.map(propertyRowToPoint)
-        .filter((p): p is NonNullable<typeof p> => p != null);
-    } catch {
-      /* map can refetch later */
+
+    // Always try to cache lat/lon with the run so Home/map follow ANY new place
+    // even if the API later restarts (in-memory store).
+    let mapPoints: PortfolioPoint[] = [];
+    const runProps = await fetchRunProperties(runResult.run.id, { limit: 600 });
+    mapPoints = rowsToMapPoints(runProps?.properties);
+    if (!mapPoints.length && portfolio.id) {
+      const portProps = await fetchPortfolioProperties(portfolio.id, {
+        limit: 600,
+      });
+      mapPoints = rowsToMapPoints(portProps?.properties);
     }
+
     const saved = saveLastTestRun(placeLabel, portfolio, runResult, {
-      mapPoints: mapPoints?.length ? mapPoints : undefined,
+      mapPoints: mapPoints.length ? mapPoints : undefined,
     });
     setResult(saved);
     setPhase("done");
-    setStatusMsg(`Pipeline finished · status ${runResult.run.status}`);
+
+    const coverage = hazardCoverageNote(portfolio);
+    const mapNote = mapPoints.length
+      ? `${mapPoints.length} map locations cached`
+      : "map coords unavailable — re-open Data → Start after API is up";
+    setStatusMsg(
+      [
+        `Pipeline finished · status ${runResult.run.status}`,
+        mapNote,
+        coverage,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    );
     return runResult;
   }
 
@@ -286,13 +317,7 @@ export default function DataStartPage() {
         }
       />
 
-      <div
-        className={clsx(
-          "grid gap-4",
-          uploadMode === "csv" && "lg:grid-cols-2",
-        )}
-      >
-        <div className="glass rounded-2xl p-6">
+      <div className="glass rounded-2xl p-6">
           <h2 className="section-title mb-4">Upload & deliver</h2>
 
           <fieldset className="mb-4">
@@ -514,45 +539,6 @@ export default function DataStartPage() {
               </>
             )}
           </div>
-        </div>
-
-        {uploadMode === "csv" ? (
-          <div className="glass rounded-2xl p-6">
-            <h2 className="section-title mb-4">
-              Or describe risks in plain words
-            </h2>
-            <textarea
-              className="input-field min-h-[180px] resize-y"
-              placeholder="Example: 40 residential buildings near Kisumu lake shore, average covered value KES 5M…"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              disabled={busy}
-            />
-            <p className="mt-3 text-xs text-white/45">
-              Free-text intake is available via the API freetext stage. For a
-              reliable end-to-end test, use the CSV upload on the left.
-            </p>
-            <p className="mt-6 text-xs uppercase tracking-wide text-white/40">
-              Pipeline stages when you run
-            </p>
-            <ol className="mt-2 space-y-2">
-              {PIPELINE_STEPS.map((step, i) => (
-                <li
-                  key={step}
-                  className={`rounded-lg border px-3 py-2 text-sm ${
-                    phase === "running" || phase === "uploading"
-                      ? "border-data/40 bg-data-soft text-data"
-                      : phase === "done"
-                        ? "border-risk/30 bg-risk-soft text-risk"
-                        : "border-white/10 text-white/60"
-                  }`}
-                >
-                  {i + 1}. {step}
-                </li>
-              ))}
-            </ol>
-          </div>
-        ) : null}
       </div>
 
       {ragResult ? (
