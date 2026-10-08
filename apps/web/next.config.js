@@ -11,6 +11,13 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/finance/treaty", destination: "/finance", permanent: false },
+      { source: "/finance/pricing", destination: "/finance", permanent: false },
+      { source: "/finance/capital", destination: "/finance", permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       {

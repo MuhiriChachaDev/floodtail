@@ -5,7 +5,7 @@ export type NavItem = {
 };
 
 export type NavGroup = {
-  id: "data" | "risk" | "finance" | "decisions" | "ai";
+  id: "data" | "finance" | "decisions" | "ai";
   label: string;
   color: "data" | "risk" | "finance" | "decide" | "accent";
   href: string;
@@ -24,66 +24,18 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Start",
         blurb: "Bring in risk information",
       },
-      {
-        href: "/data/quality",
-        label: "Data Quality & Location",
-        blurb: "Can we trust where risks are?",
-      },
-      {
-        href: "/data/portfolio",
-        label: "Portfolio & Exposure",
-        blurb: "What do we cover, and where?",
-      },
-    ],
-  },
-  {
-    id: "risk",
-    label: "Risk Modelling",
-    color: "risk",
-    href: "/risk/hazard",
-    items: [
-      {
-        href: "/risk/hazard",
-        label: "Flood Hazard",
-        blurb: "Where is the flood?",
-      },
-      {
-        href: "/risk/simulation",
-        label: "Event Simulation",
-        blurb: "What could happen?",
-      },
-      {
-        href: "/risk/loss",
-        label: "Loss Modelling",
-        blurb: "What could it cost?",
-      },
-      {
-        href: "/risk/analytics",
-        label: "Risk Analytics",
-        blurb: "What does the risk mean?",
-      },
     ],
   },
   {
     id: "finance",
     label: "Finance",
     color: "finance",
-    href: "/finance/treaty",
+    href: "/finance",
     items: [
       {
-        href: "/finance/treaty",
-        label: "Risk & Treaty",
-        blurb: "How reinsurance responds",
-      },
-      {
-        href: "/finance/pricing",
-        label: "Pricing",
-        blurb: "Supported price indication",
-      },
-      {
-        href: "/finance/capital",
-        label: "Capital & Portfolio",
-        blurb: "Impact on capacity",
+        href: "/finance",
+        label: "Finance",
+        blurb: "Treaty, pricing, and capital",
       },
     ],
   },
@@ -162,28 +114,15 @@ export const MODULE_CARDS = [
     tagline: "Know what we have",
     color: "data" as const,
     href: "/data/start",
-    items: ["Start", "Data Quality & Location", "Portfolio & Exposure"],
-  },
-  {
-    id: "risk",
-    title: "Risk Modelling",
-    tagline: "Understand the flood",
-    color: "risk" as const,
-    href: "/risk/hazard",
-    items: [
-      "Flood Hazard",
-      "Event Simulation",
-      "Loss Modelling",
-      "Risk Analytics",
-    ],
+    items: ["Start"],
   },
   {
     id: "finance",
     title: "Finance",
     tagline: "See the money impact",
     color: "finance" as const,
-    href: "/finance/treaty",
-    items: ["Risk & Treaty", "Pricing", "Capital & Portfolio"],
+    href: "/finance",
+    items: ["Treaty", "Pricing", "Capital"],
   },
   {
     id: "decisions",

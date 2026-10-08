@@ -4,13 +4,17 @@ import { useState } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Notice } from "@/components/ui/Notice";
 import { formatKes } from "@/lib/format";
-import { DEMO } from "@/lib/demo";
+import { useLivePortfolioView } from "@/lib/live-view";
 
 export default function ReviewPage() {
+  const view = useLivePortfolioView();
   const [decision, setDecision] = useState<"pending" | "approved" | "rejected" | "returned">(
     "pending",
   );
   const [reason, setReason] = useState("");
+  const premium =
+    view.resolved.pricing?.technical_premium_kes ??
+    view.resolved.aalKes * 1.25;
 
   return (
     <div className="space-y-6">
@@ -30,17 +34,31 @@ export default function ReviewPage() {
           <h2 className="section-title text-base">Proposed decision</h2>
           <p className="text-sm text-white/75">
             Accept technical pricing indication of{" "}
-            <strong className="text-white">
-              {formatKes(DEMO.risk.expectedYearlyLoss * 1.25)}
-            </strong>{" "}
-            for the Nairobi demo book, subject to Eastlands monitoring.
+            <strong className="text-white">{formatKes(premium)}</strong> for{" "}
+            {view.place}
+            {view.hasRun ? " (last portfolio run)" : " (demo until you upload)"}.
           </p>
           <ul className="space-y-2 text-sm text-white/60">
             <li>• AI recommendation: Approve with monitoring</li>
-            <li>• Risk impact: Expected yearly loss unchanged at base</li>
-            <li>• Capital impact: Within illustrative headroom</li>
-            <li>• Model versions: hazard v1.0 · vulnerability v1.0</li>
-            <li>• Assumptions: synthetic portfolio · proxy hazard</li>
+            <li>
+              • Risk impact: Expected yearly loss{" "}
+              {formatKes(view.resolved.aalKes)}
+            </li>
+            <li>
+              • Capital impact: floor{" "}
+              {formatKes(view.resolved.capitalBand?.floor_kes ?? 0)} · ceiling{" "}
+              {formatKes(view.resolved.capitalBand?.ceiling_kes ?? 0)}
+            </li>
+            <li>
+              • Models:{" "}
+              {view.resolved.hazardModel || "hazard pinned"} ·{" "}
+              {view.resolved.vulnModel || "vulnerability pinned"}
+            </li>
+            <li>
+              • Assumptions:{" "}
+              {view.resolved.assumptionsVersion || "run profile"} ·{" "}
+              {view.resolved.nHouses} locations
+            </li>
           </ul>
         </div>
 
@@ -78,11 +96,9 @@ export default function ReviewPage() {
           {decision !== "pending" ? (
             <p className="text-sm text-accent">
               Recorded as <strong>{decision}</strong>. Continue to Decision Output
-              for the official record.
+              to export the pack.
             </p>
-          ) : (
-            <p className="text-xs text-white/40">A reason is required before action.</p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

@@ -16,10 +16,10 @@ export function PageHeader({ eyebrow, title, question, children }: Props) {
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl">
+        <h1 className="font-display text-xl font-semibold text-white sm:text-3xl">
           {title}
         </h1>
-        <p className="mt-2 text-base text-white/70">{question}</p>
+        <p className="mt-2 text-sm text-white/70 sm:text-base">{question}</p>
       </div>
       {children ? <div className="animate-fade-up">{children}</div> : null}
     </div>

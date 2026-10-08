@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "FLOODTAIL · Kenya Re Flood Risk Intelligence",
   description:
     "Kenya-focused flood-risk intelligence for Kenya Re — data, hazard, loss, finance, and human decisions in one place.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#03070f",
 };
 
 const fontVars = {

@@ -35,7 +35,7 @@ export function StatCard({
         </p>
         {icon}
       </div>
-      <p className="mt-2 font-display text-2xl font-semibold text-white">
+      <p className="mt-2 break-words font-display text-xl font-semibold text-white sm:text-2xl">
         {value}
       </p>
       {hint ? <p className="mt-1 text-xs text-white/50">{hint}</p> : null}

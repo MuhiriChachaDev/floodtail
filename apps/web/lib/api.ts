@@ -85,13 +85,15 @@ export type HealthPayload = {
   };
 };
 
-export type PortfolioPayload = {
-  id: string;
-  name: string;
-  location_label: string;
-  source: string;
-  synthetic: boolean;
-  n_rows: number;
+export type IngestStatsPayload = {
+  n_insured_houses?: number;
+  total_tiv_kes?: number;
+  location_label?: string;
+  /** min_lat, min_lon, max_lat, max_lon */
+  bbox?: [number, number, number, number] | number[] | null;
+  housing_class_counts?: Record<string, number>;
+  synthetic?: boolean;
+  source?: string;
 };
 
 export type RunStage = {
@@ -135,6 +137,21 @@ export type DataLabels = {
   d_max_m?: number;
   location_flexible?: boolean;
   notes?: string[];
+};
+
+export type PortfolioPayload = {
+  id: string;
+  name: string;
+  location_label: string;
+  source: string;
+  synthetic: boolean;
+  n_rows: number;
+  ingest_stats?: IngestStatsPayload | null;
+  data_labels?: DataLabels | null;
+  extra?: {
+    warnings?: string[];
+    column_mapping?: Record<string, string>;
+  };
 };
 
 export type TreatyTerms = {
@@ -288,6 +305,73 @@ export async function fetchHealth(): Promise<HealthPayload | null> {
   }
 }
 
+/** RAG knowledge document after ingest (PDF / DOCX / text). */
+export type KnowledgeDocumentResult = {
+  document_id: string;
+  filename: string;
+  n_chunks: number;
+  backend: string;
+  embedding_degraded?: boolean;
+  warnings?: string[];
+};
+
+export type KnowledgeSearchHit = {
+  content: string;
+  score: number;
+  document_id: string;
+  chunk_index: number;
+  filename: string;
+};
+
+export type KnowledgeSearchResult = {
+  query: string;
+  n_hits: number;
+  context: string;
+  hits: KnowledgeSearchHit[];
+  backend?: string;
+};
+
+export async function uploadKnowledgeDocument(opts: {
+  file: File;
+  locationLabel?: string;
+  title?: string;
+}): Promise<{ document: KnowledgeDocumentResult }> {
+  const form = new FormData();
+  form.append("file", opts.file);
+  const meta: Record<string, string> = {};
+  if (opts.locationLabel?.trim()) meta.location_label = opts.locationLabel.trim();
+  if (opts.title?.trim()) meta.title = opts.title.trim();
+  if (Object.keys(meta).length) {
+    form.append("metadata_json", JSON.stringify(meta));
+  }
+
+  const res = await fetchSafe(apiUrl("/v1/knowledge/documents"), {
+    method: "POST",
+    headers: protoHeaders(),
+    body: form,
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
+
+export async function searchKnowledge(opts: {
+  query: string;
+  k?: number;
+  documentId?: string;
+}): Promise<KnowledgeSearchResult> {
+  const res = await fetchSafe(apiUrl("/v1/knowledge/search"), {
+    method: "POST",
+    headers: protoHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      query: opts.query,
+      k: opts.k ?? 6,
+      document_id: opts.documentId || null,
+    }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
+
 export async function uploadPortfolio(opts: {
   file: File;
   locationLabel: string;
@@ -352,6 +436,81 @@ export async function fetchRunMetrics(
     if (!res.ok) return null;
     const data = await res.json();
     return (data.metrics ?? null) as MetricsPayload | null;
+  } catch {
+    return null;
+  }
+}
+
+/** One scored location row from GET /v1/runs/{id}/properties. */
+export type RunPropertyRow = {
+  loc_id?: string;
+  lat?: number;
+  lon?: number;
+  housing_class?: string;
+  tiv_kes?: number;
+  synthetic?: boolean;
+  dist_hotspot_km?: number | null;
+  dist_waterway_km?: number | null;
+  loss_kes_severe?: number | null;
+  loss_kes_extreme?: number | null;
+  damage_ratio_severe?: number | null;
+  damage_ratio_extreme?: number | null;
+  depth_m_severe?: number | null;
+  depth_m_extreme?: number | null;
+  hazard_score_severe?: number | null;
+  hazard_score_extreme?: number | null;
+  hazard_score_pred_severe?: number | null;
+  hazard_score_pred_extreme?: number | null;
+  [key: string]: unknown;
+};
+
+export type RunPropertiesPayload = {
+  run_id: string;
+  total: number;
+  offset: number;
+  limit: number;
+  properties: RunPropertyRow[];
+};
+
+export async function fetchRunProperties(
+  runId: string,
+  opts?: { limit?: number; offset?: number },
+): Promise<RunPropertiesPayload | null> {
+  try {
+    const limit = opts?.limit ?? 600;
+    const offset = opts?.offset ?? 0;
+    const res = await fetch(
+      apiUrl(`/v1/runs/${runId}/properties?limit=${limit}&offset=${offset}`),
+      { headers: protoHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as RunPropertiesPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPortfolioProperties(
+  portfolioId: string,
+  opts?: { limit?: number; offset?: number },
+): Promise<{
+  portfolio_id: string;
+  location_label?: string;
+  total: number;
+  properties: RunPropertyRow[];
+  bbox?: number[] | null;
+} | null> {
+  try {
+    const limit = opts?.limit ?? 600;
+    const offset = opts?.offset ?? 0;
+    const res = await fetch(
+      apiUrl(
+        `/v1/portfolios/${portfolioId}/properties?limit=${limit}&offset=${offset}`,
+      ),
+      { headers: protoHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
     return null;
   }

@@ -20,15 +20,17 @@ export function FlowSteps({
   return (
     <ol className="flex flex-wrap items-stretch gap-2">
       {steps.map((step, i) => (
-        <li key={step.label} className="flex items-center gap-2">
-          <div className={clsx("rounded-xl border px-3 py-2", color)}>
-            <p className="text-sm font-semibold">{step.label}</p>
+        <li key={step.label} className="flex min-w-0 max-w-full items-center gap-2">
+          <div className={clsx("min-w-0 rounded-xl border px-2.5 py-2 sm:px-3", color)}>
+            <p className="text-xs font-semibold sm:text-sm">{step.label}</p>
             {step.detail ? (
-              <p className="text-xs opacity-80">{step.detail}</p>
+              <p className="break-words text-[11px] opacity-80 sm:text-xs">{step.detail}</p>
             ) : null}
           </div>
           {i < steps.length - 1 ? (
-            <span className="text-white/30">→</span>
+            <span className="hidden shrink-0 text-white/30 sm:inline" aria-hidden>
+              →
+            </span>
           ) : null}
         </li>
       ))}
