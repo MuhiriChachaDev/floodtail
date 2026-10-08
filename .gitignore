@@ -39,6 +39,7 @@ Thumbs.db
 # Logs / temp
 *.log
 data/processed/
+data/store/
 data/*.db
 *.db
 

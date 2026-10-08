@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,6 +21,15 @@ from apps.api.routers import (
     vulnerability,
 )
 from apps.api.settings import get_settings
+from apps.api.store import init_store
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    settings = get_settings()
+    init_store(backend=settings.store_backend, root=settings.store_root)
+    yield
+
 
 _settings = get_settings()
 _show_docs = _settings.docs_enabled
@@ -34,6 +45,7 @@ app = FastAPI(
     docs_url="/docs" if _show_docs else None,
     redoc_url="/redoc" if _show_docs else None,
     openapi_url="/openapi.json" if _show_docs else None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(

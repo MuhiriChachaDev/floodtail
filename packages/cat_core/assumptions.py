@@ -55,6 +55,15 @@ class PricingPolicy(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class MonteCarloPolicy(BaseModel):
+    """Optional light damage-ratio noise MC around discrete AAL."""
+
+    enabled: bool = False
+    n_sims: int = Field(default=200, ge=1, le=5000)
+    noise_sigma: float = Field(default=0.08, ge=0.0, le=0.5)
+    seed: int = 42
+
+
 class AssumptionsProfile(BaseModel):
     """Run-level modelling assumptions."""
 
@@ -78,9 +87,13 @@ class AssumptionsProfile(BaseModel):
             "concrete_rcc",
         ]
     )
+    # Optional depth–damage overrides / extensions: {class: [[depth_m, ratio], ...]}
+    # Merged on top of JRC_ADAPTED_CURVES so new classes can be added without code edits.
+    vulnerability_curves: dict[str, list[list[float]]] = Field(default_factory=dict)
     capital: CapitalPolicy = Field(default_factory=CapitalPolicy)
     treaty: TreatyPolicy = Field(default_factory=TreatyPolicy)
     pricing: PricingPolicy = Field(default_factory=PricingPolicy)
+    monte_carlo: MonteCarloPolicy = Field(default_factory=MonteCarloPolicy)
 
     @field_validator("return_periods")
     @classmethod
@@ -96,3 +109,8 @@ class AssumptionsProfile(BaseModel):
 
     def aep_for_rp(self, rp: int) -> float:
         return 1.0 / float(rp)
+
+    def resolved_vulnerability_curves(self) -> dict[str, list[tuple[float, float]]]:
+        from packages.cat_core.vulnerability_prior import resolve_curves
+
+        return resolve_curves(self.vulnerability_curves or None)

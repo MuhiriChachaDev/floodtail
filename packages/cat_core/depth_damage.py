@@ -10,10 +10,17 @@ from .assumptions import AssumptionsProfile
 from .vulnerability_prior import JRC_ADAPTED_CURVES
 
 
-def prior_curve_payload() -> dict[str, list[dict[str, float]]]:
-    """JRC/Huizinga-adapted depth–damage priors for the API / UI."""
+def prior_curve_payload(
+    profile: AssumptionsProfile | None = None,
+) -> dict[str, list[dict[str, float]]]:
+    """Depth–damage priors for the API / UI (profile overrides merged when given)."""
+    curves = (
+        profile.resolved_vulnerability_curves()
+        if profile is not None
+        else JRC_ADAPTED_CURVES
+    )
     out: dict[str, list[dict[str, float]]] = {}
-    for housing, pts in JRC_ADAPTED_CURVES.items():
+    for housing, pts in curves.items():
         out[housing] = [
             {"depth_m": float(d), "damage_ratio": float(r)} for d, r in pts
         ]
@@ -79,5 +86,5 @@ def build_depth_damage_summary(
         "assumptions_version": profile.assumptions_version,
         "by_tier": by_tier,
         "by_housing_class": by_housing,
-        "prior_curves": prior_curve_payload(),
+        "prior_curves": prior_curve_payload(profile),
     }

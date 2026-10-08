@@ -15,13 +15,14 @@ from packages.cat_core.exposure import (
     validate_and_normalize,
 )
 
-# Canonical Nairobi CAT columns + common aliases from underwriter CSVs
+# Canonical CAT columns + common aliases from underwriter CSVs (any market).
 _COLUMN_ALIASES: dict[str, str] = {
     "loc_id": "loc_id",
     "location_id": "loc_id",
     "id": "loc_id",
     "policy_id": "loc_id",
     "building_id": "loc_id",
+    "risk_id": "loc_id",
     "lat": "lat",
     "latitude": "lat",
     "y": "lat",
@@ -33,13 +34,23 @@ _COLUMN_ALIASES: dict[str, str] = {
     "housing_class": "housing_class",
     "occupancy": "housing_class",
     "construction_class": "housing_class",
+    "construction": "housing_class",
     "property_type": "housing_class",
     "building_type": "housing_class",
+    "building_class": "housing_class",
+    # Currency-agnostic TIV → canonical tiv_kes column (name retained for compat)
     "tiv_kes": "tiv_kes",
     "tiv": "tiv_kes",
+    "tiv_usd": "tiv_kes",
+    "tiv_eur": "tiv_kes",
+    "tiv_gbp": "tiv_kes",
+    "sum_insured_kes": "tiv_kes",
+    "sum_insured_usd": "tiv_kes",
     "insured_value": "tiv_kes",
     "sum_insured": "tiv_kes",
     "total_insured_value": "tiv_kes",
+    "si": "tiv_kes",
+    "gwv": "tiv_kes",
 }
 
 
@@ -53,18 +64,33 @@ def schema_map(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, str], list[
     mapping: dict[str, str] = {}
     rename: dict[str, str] = {}
     lower_cols = {c.lower().strip(): c for c in frame.columns}
+    claimed_canonical: set[str] = set()
     for alias, canonical in _COLUMN_ALIASES.items():
-        if canonical in frame.columns:
+        if canonical in claimed_canonical:
+            continue
+        if canonical in frame.columns and canonical not in rename.values():
             mapping[canonical] = canonical
+            claimed_canonical.add(canonical)
             continue
         if alias in lower_cols:
             src = lower_cols[alias]
             if src != canonical and canonical not in rename.values():
                 rename[src] = canonical
                 mapping[canonical] = src
+                claimed_canonical.add(canonical)
     out = frame.rename(columns=rename)
     if rename:
         warnings.append(f"schema_map renamed columns: {rename}")
+        # Flag currency-agnostic remaps so payloads stay honest
+        currency_srcs = {
+            k for k, v in rename.items() if v == "tiv_kes" and "kes" not in k.lower()
+        }
+        if currency_srcs:
+            warnings.append(
+                "TIV column remapped to canonical tiv_kes (currency-agnostic); "
+                f"source columns={sorted(currency_srcs)}. "
+                "Values are treated as the portfolio reporting currency."
+            )
     return out, mapping, warnings
 
 

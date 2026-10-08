@@ -9,7 +9,7 @@ from fastapi import Depends, Header, HTTPException, Request
 
 from apps.api.middleware.auth import resolve_principal
 from apps.api.settings import Settings, get_settings
-from apps.api.store import InMemoryStore, get_store
+from apps.api.store import InMemoryStore, StoreProtocol, get_store
 from packages.security.rbac import ForbiddenError, require_permission
 from packages.security.tenant import TenantMismatchError, assert_same_tenant
 
@@ -71,6 +71,8 @@ def get_app_store() -> InMemoryStore:
 
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
 StoreDep = Annotated[InMemoryStore, Depends(get_app_store)]
+# Alias for type checkers / future Protocol-based DI
+StoreProtocolDep = Annotated[StoreProtocol, Depends(get_app_store)]
 ContextDep = Annotated[RequestContext, Depends(get_request_context)]
 
 

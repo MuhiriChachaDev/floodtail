@@ -74,14 +74,25 @@ def validate_and_normalize(
     else:
         out["source"] = out["source"].fillna(source).astype(str)
 
-    # Ensure hazard score columns exist for configured tiers (fill 0 if absent)
+    # Ensure hazard score columns exist for configured tiers (fill 0 if absent).
+    # Zero-fill is intentional for schema completeness but understates risk —
+    # callers should sample GeoTIFFs or attach scores before financial runs.
+    missing_hazard: list[str] = []
     for tier in profile.tier_names:
         col = f"{HAZARD_SCORE_PREFIX}{tier}"
         if col not in out.columns:
             out[col] = 0.0
+            missing_hazard.append(col)
             warnings.append(f"missing {col} — filled with 0.0")
         else:
             out[col] = pd.to_numeric(out[col], errors="coerce").fillna(0.0).clip(0.0, 1.0)
+    if missing_hazard:
+        warnings.append(
+            "HAZARD_ZERO_FILL: missing susceptibility columns were set to 0.0. "
+            "Losses will understate risk until scores are attached or GeoTIFF "
+            "sampling (sample_hazard_rasters) is applied. "
+            f"columns={missing_hazard}"
+        )
 
     stats = compute_ingest_stats(out, location_label=location_label, source=source)
     return out, stats, warnings

@@ -243,10 +243,16 @@ def test_agent_result_rejects_invalid_status() -> None:
 # =========================================================================
 
 def test_app_bootstrap_runs() -> None:
-    """Import and call main() — it should complete without error."""
-    from app import main
+    """FastAPI app imports and exposes health (Streamlit app.py removed)."""
+    from fastapi.testclient import TestClient
 
-    main()  # should not raise
+    from apps.api.main import app
+
+    assert "FLOODTAIL" in app.title.upper() or "Flood" in app.title
+    with TestClient(app) as client:
+        r = client.get("/v1/health")
+        assert r.status_code == 200
+        assert "status" in r.json()
 
 
 # =========================================================================

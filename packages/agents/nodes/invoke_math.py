@@ -36,9 +36,10 @@ def node_invoke_math(state: AgentGraphState) -> AgentGraphState:
             col = f"hazard_score_{tier}"
             if tier in baseline_scores:
                 base[col] = baseline_scores[tier]
+        curves = profile.resolved_vulnerability_curves()
         base = enrich_frame(base, hotspots=state.get("hotspots"), use_osm=False)
         base = add_depth_columns(base, profile)
-        base = add_damage_ratio_columns(base, profile.tier_names)
+        base = add_damage_ratio_columns(base, profile.tier_names, curves=curves)
         base = add_loss_columns(base, profile.tier_names)
         base_totals = reconcile_location_losses(base, profile.tier_names)
         base_tiers = build_tier_losses(base_totals, profile)

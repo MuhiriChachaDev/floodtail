@@ -11,6 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from packages.cat_core.assumptions import (
     AssumptionsProfile,
     CapitalPolicy,
+    MonteCarloPolicy,
     PricingPolicy,
     TreatyPolicy,
 )
@@ -76,6 +77,19 @@ class Settings(BaseSettings):
     overpass_url: str = "https://overpass-api.de/api/interpreter"
     use_osm_default: bool = False
     hotspots_filename: str = "nairobi_hotspots_geocoded.csv"
+
+    # Sample GeoTIFF hazard when uploaded CSV lacks hazard_score_* (needs rasterio)
+    sample_rasters_on_upload: bool = True
+
+    # Durable portfolio/run store: memory | file
+    store_backend: Literal["memory", "file"] = "memory"
+    store_root: Path = _ROOT / "data" / "store"
+
+    # Optional light MC band around discrete AAL
+    mc_aal_enabled: bool = False
+    mc_aal_n_sims: int = 200
+    mc_aal_noise_sigma: float = 0.08
+    mc_aal_seed: int = 42
 
     # JWT / Keycloak (wired in Phase E)
     keycloak_url: str = "http://localhost:8080"
@@ -145,6 +159,12 @@ class Settings(BaseSettings):
             pricing=PricingPolicy(
                 default_load_factor=self.pricing_default_load_factor,
                 currency=self.capital_currency,
+            ),
+            monte_carlo=MonteCarloPolicy(
+                enabled=self.mc_aal_enabled,
+                n_sims=self.mc_aal_n_sims,
+                noise_sigma=self.mc_aal_noise_sigma,
+                seed=self.mc_aal_seed,
             ),
         )
 

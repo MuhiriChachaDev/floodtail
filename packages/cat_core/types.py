@@ -178,6 +178,20 @@ class PricingIndication(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class AALUncertaintyBand(BaseModel):
+    """Optional light Monte Carlo band around discrete AAL (PROTOTYPE)."""
+
+    method: str = "damage_ratio_noise_mc"
+    n_sims: int = 0
+    seed: int = 0
+    aal_mean_kes: float = 0.0
+    aal_p05_kes: float = 0.0
+    aal_p50_kes: float = 0.0
+    aal_p95_kes: float = 0.0
+    noise_sigma: float = 0.0
+    notes: list[str] = Field(default_factory=list)
+
+
 class MetricsPayload(BaseModel):
     """Grounded run metrics — sole source of money numbers for agents."""
 
@@ -191,6 +205,9 @@ class MetricsPayload(BaseModel):
     tier_losses: list[TierLoss] = Field(default_factory=list)
     ep_curve: list[EPPoint] = Field(default_factory=list)
     aal_kes: float = 0.0
+    aal_method: str = AAL_METHOD_DISCRETE
+    aal_caveat: str = AAL_CAVEAT_DISCRETE
+    aal_uncertainty: Optional[AALUncertaintyBand] = None
     capital_band: Optional[CapitalBand] = None
     financial: Optional[FinancialView] = None
     pricing: Optional[PricingIndication] = None
