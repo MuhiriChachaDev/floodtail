@@ -179,6 +179,78 @@ class CounterfactualEngine:
             new_marginal_tvar=round(marginal_delta, 2),
         )
 
+    def evaluate_remedial_interventions(
+        self,
+        policy_id: str,
+        tiv: float,
+        orig_aal: float,
+        orig_tail: float,
+        orig_premium: float,
+        coc_rate: float = 0.10,
+        exp_rate: float = 0.10,
+    ) -> list[dict[str, Any]]:
+        """Generate 3 concrete underwriting fixes to convert an ESCALATED risk into ACCEPT."""
+        interventions: list[dict[str, Any]] = []
+
+        # Option 1: Deductible increase (10% TIV deductible absorbs high-frequency pluvial losses)
+        ded_loss_reduction = 0.45  # 45% reduction in expected and tail loss
+        ded_aal = orig_aal * (1.0 - ded_loss_reduction)
+        ded_tail = orig_tail * (1.0 - ded_loss_reduction * 0.7)
+        ded_net_tail = max(0.0, ded_tail - ded_aal)
+        ded_tail_chg = coc_rate * ded_net_tail
+        ded_prem = ded_aal + ded_tail_chg + exp_rate * (ded_aal + ded_tail_chg)
+        interventions.append({
+            "option_id": "OPT-1",
+            "type": "DEDUCTIBLE_INCREASE",
+            "title": "Introduce 10% TIV Policy Deductible",
+            "description": f"Mandate KES {tiv * 0.10:,.0f} deductible to absorb localized surface water pooling.",
+            "new_aal": ded_aal,
+            "new_tail": ded_tail,
+            "new_indicated_premium": ded_prem,
+            "premium_saving_pct": round((orig_premium - ded_prem) / max(1e-9, orig_premium) * 100, 1),
+            "target_recommendation": "ACCEPT",
+        })
+
+        # Option 2: Physical Floodproofing / Elevation (0.5m dry barrier offset)
+        elev_loss_reduction = 0.35
+        elev_aal = orig_aal * (1.0 - elev_loss_reduction)
+        elev_tail = orig_tail * (1.0 - elev_loss_reduction * 0.8)
+        elev_net_tail = max(0.0, elev_tail - elev_aal)
+        elev_tail_chg = coc_rate * elev_net_tail
+        elev_prem = elev_aal + elev_tail_chg + exp_rate * (elev_aal + elev_tail_chg)
+        interventions.append({
+            "option_id": "OPT-2",
+            "type": "ELEVATION_BARRIER",
+            "title": "Install 0.5m Perimeter Flood Barrier",
+            "description": "Physical asset floodproofing eliminates damage for depths under 0.50m.",
+            "new_aal": elev_aal,
+            "new_tail": elev_tail,
+            "new_indicated_premium": elev_prem,
+            "premium_saving_pct": round((orig_premium - elev_prem) / max(1e-9, orig_premium) * 100, 1),
+            "target_recommendation": "ACCEPT",
+        })
+
+        # Option 3: Sub-limit on Pluvial Flood Cover (Cap at 60% TIV)
+        lim_scale = 0.60
+        lim_aal = orig_aal * 0.80
+        lim_tail = orig_tail * lim_scale
+        lim_net_tail = max(0.0, lim_tail - lim_aal)
+        lim_tail_chg = coc_rate * lim_net_tail
+        lim_prem = lim_aal + lim_tail_chg + exp_rate * (lim_aal + lim_tail_chg)
+        interventions.append({
+            "option_id": "OPT-3",
+            "type": "LIMIT_REDUCTION",
+            "title": f"Sub-limit Flood Cover to 60% TIV (KES {tiv * 0.6:,.0f})",
+            "description": "Capping loss exposure truncates extreme tail loss liability.",
+            "new_aal": lim_aal,
+            "new_tail": lim_tail,
+            "new_indicated_premium": lim_prem,
+            "premium_saving_pct": round((orig_premium - lim_prem) / max(1e-9, orig_premium) * 100, 1),
+            "target_recommendation": "ACCEPT",
+        })
+
+        return interventions
+
 
 class RiskAppetiteRuleEngine:
     """Evaluates portfolio and policy risk metrics against underwriting appetite limits."""
