@@ -16,6 +16,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { FlowSteps } from "@/components/ui/FlowSteps";
 import { Notice } from "@/components/ui/Notice";
 import { StatCard } from "@/components/ui/StatCard";
+import { EpCurveChart } from "@/components/charts/EpCurveChart";
+import { DepthDamageChart } from "@/components/charts/DepthDamageChart";
+import { HeavyRainCallout } from "@/components/charts/HeavyRainCallout";
+import { resolveDepthDamage } from "@/lib/depth-damage";
 import {
   createBuiltinPortfolio,
   createRun,
@@ -25,6 +29,7 @@ import {
   type PortfolioPayload,
 } from "@/lib/api";
 import { formatKes } from "@/lib/format";
+import { heavyRainLosses, resolveEpMetrics } from "@/lib/ep-metrics";
 import { loadLastTestRun, saveLastTestRun, type LastTestRun } from "@/lib/run-store";
 
 type Phase =
@@ -127,6 +132,14 @@ export default function DataStartPage() {
   }
 
   const busy = phase === "uploading" || phase === "running";
+  const resultEp = result
+    ? resolveEpMetrics(result.metrics, {
+        runId: result.runId,
+        locationLabel: result.place,
+      })
+    : null;
+  const resultHeavy = resultEp ? heavyRainLosses(resultEp.points) : null;
+  const resultDd = result ? resolveDepthDamage(result.metrics) : null;
 
   return (
     <div className="space-y-6">
@@ -326,7 +339,7 @@ export default function DataStartPage() {
         </div>
       </div>
 
-      {result ? (
+      {result && resultEp && resultHeavy ? (
         <section className="space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -339,7 +352,7 @@ export default function DataStartPage() {
               </p>
             </div>
             <Link href="/risk/analytics" className="btn-ghost !text-xs">
-              Open risk view →
+              Open EP analytics →
             </Link>
           </div>
 
@@ -360,15 +373,28 @@ export default function DataStartPage() {
               label="Expected yearly loss"
               value={formatKes(Number(result.metrics?.aal_kes ?? 0))}
               tone="risk"
-              hint="From the numerical engine"
+              hint="AAL from EP curve"
             />
             <StatCard
-              label="Run ID"
-              value={result.runId.slice(0, 12)}
-              tone="neutral"
-              hint="Traceable"
+              label="If rains too much"
+              value={formatKes(resultHeavy.severe ?? 0)}
+              tone="finance"
+              hint="Severe · 1-in-100"
             />
           </div>
+
+          <HeavyRainCallout
+            severeKes={resultHeavy.severe}
+            extremeKes={resultHeavy.extreme}
+            locationLabel={result.place}
+            source={resultEp.source}
+          />
+
+          {resultDd ? <DepthDamageChart data={resultDd} /> : null}
+
+          {resultEp.points.length > 0 ? (
+            <EpCurveChart points={resultEp.points} aalKes={resultEp.aalKes} />
+          ) : null}
 
           {result.stages?.length ? (
             <div className="glass rounded-2xl p-5">

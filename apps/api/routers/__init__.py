@@ -5,10 +5,13 @@ from apps.api.routers import (
     explanations,
     health,
     insight,
+    knowledge,
+    memory,
     models,
     portfolios,
     query,
     runs,
+    vulnerability,
 )
 
 __all__ = [
@@ -16,8 +19,11 @@ __all__ = [
     "explanations",
     "health",
     "insight",
+    "knowledge",
+    "memory",
     "models",
     "portfolios",
     "query",
     "runs",
+    "vulnerability",
 ]

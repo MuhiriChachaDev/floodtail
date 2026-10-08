@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { FlowSteps } from "@/components/ui/FlowSteps";
 import { FloodMap } from "@/components/map/FloodMap";
 import { StatCard } from "@/components/ui/StatCard";
+import { PrototypeBadge } from "@/components/ui/PrototypeBadge";
+import Link from "next/link";
 
 export default function SimulationPage() {
   const [severity, setSeverity] = useState("Severe");
@@ -18,6 +20,15 @@ export default function SimulationPage() {
         title="What could happen?"
         question="Set up a possible flood event, then see which covered properties sit in its path."
       />
+
+      <PrototypeBadge title="Illustrative event UX — not the discrete EP engine">
+        FLOODTAIL&apos;s loss model uses five assumed return-period tiers, not a
+        click-to-simulate catalogue. For live ground-up / net losses open{" "}
+        <Link href="/risk/loss" className="text-accent hover:underline">
+          Loss modelling
+        </Link>{" "}
+        after a portfolio test.
+      </PrototypeBadge>
 
       <FlowSteps
         accent="risk"

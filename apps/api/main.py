@@ -10,10 +10,13 @@ from apps.api.routers import (
     explanations,
     health,
     insight,
+    knowledge,
+    memory,
     models,
     portfolios,
     query,
     runs,
+    vulnerability,
 )
 from apps.api.settings import get_settings
 
@@ -46,7 +49,10 @@ app.include_router(insight.router, prefix="/v1", tags=["insight"])
 app.include_router(models.router, prefix="/v1", tags=["models"])
 app.include_router(explanations.router, prefix="/v1", tags=["explanations"])
 app.include_router(query.router, prefix="/v1", tags=["query"])
+app.include_router(knowledge.router, prefix="/v1", tags=["knowledge"])
+app.include_router(memory.router, prefix="/v1", tags=["memory"])
 app.include_router(audit.router, prefix="/v1", tags=["audit"])
+app.include_router(vulnerability.router, prefix="/v1", tags=["vulnerability"])
 
 
 @app.get("/")

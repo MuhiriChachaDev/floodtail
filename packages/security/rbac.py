@@ -86,6 +86,42 @@ PERMISSIONS: dict[str, frozenset[str]] = {
             Role.DATA_SCIENTIST.value,
         }
     ),
+    "knowledge:write": frozenset(
+        {
+            Role.ADMIN.value,
+            Role.UNDERWRITER.value,
+            Role.ACTUARY.value,
+            Role.DATA_SCIENTIST.value,
+        }
+    ),
+    "knowledge:read": frozenset(
+        {
+            Role.ADMIN.value,
+            Role.UNDERWRITER.value,
+            Role.ACTUARY.value,
+            Role.DATA_SCIENTIST.value,
+            Role.CLIENT_VIEWER.value,
+            Role.REGULATOR.value,
+            Role.AUDITOR.value,
+        }
+    ),
+    "memory:write": frozenset(
+        {
+            Role.ADMIN.value,
+            Role.UNDERWRITER.value,
+            Role.ACTUARY.value,
+            Role.DATA_SCIENTIST.value,
+        }
+    ),
+    "memory:read": frozenset(
+        {
+            Role.ADMIN.value,
+            Role.UNDERWRITER.value,
+            Role.ACTUARY.value,
+            Role.DATA_SCIENTIST.value,
+            Role.AUDITOR.value,
+        }
+    ),
 }
 
 

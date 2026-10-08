@@ -15,6 +15,8 @@ from packages.cat_core.capital import (
 )
 from packages.cat_core.ep import build_ep_curve, build_tier_losses, discrete_aal
 from packages.cat_core.financial import add_loss_columns, reconcile_location_losses
+from packages.cat_core.pricing import technical_premium
+from packages.cat_core.reinsurance import build_financial_view
 from packages.cat_core.types import CapitalBand, MetricsPayload, TierLoss
 
 
@@ -30,8 +32,11 @@ def compute_ep_capital(
     vuln_model_version: str | None = None,
     baseline_delta: dict | None = None,
     warnings: list[str] | None = None,
+    treaty_attachment_kes: float | None = None,
+    treaty_limit_kes: float | None = None,
+    pricing_load_factor: float | None = None,
 ) -> tuple[pd.DataFrame, MetricsPayload, list[TierLoss], CapitalBand]:
-    """Compute losses → EP → AAL → capital band from a damage-ready frame."""
+    """Compute losses → EP → AAL → XL financial → capital → technical premium."""
     work = add_loss_columns(frame, profile.tier_names)
     tier_totals = reconcile_location_losses(work, profile.tier_names)
     mean_dmg = {
@@ -40,26 +45,54 @@ def compute_ep_capital(
     tier_losses = build_tier_losses(tier_totals, profile, mean_damage_by_tier=mean_dmg)
     ep_curve = build_ep_curve(tier_losses)
     aal = discrete_aal(tier_losses)
+    total_tiv = float(work["tiv_kes"].sum())
     capital = compute_capital_band_from_profile(
-        tier_losses, aal, float(work["tiv_kes"].sum()), profile
+        tier_losses, aal, total_tiv, profile
     )
+    treaty_policy = profile.treaty.model_copy(deep=True)
+    if treaty_attachment_kes is not None:
+        treaty_policy.attachment_kes = float(treaty_attachment_kes)
+    if treaty_limit_kes is not None:
+        treaty_policy.limit_kes = float(treaty_limit_kes)
+    financial = build_financial_view(
+        tier_losses, treaty_policy, total_tiv, reference_tier="severe"
+    )
+    pricing = technical_premium(
+        aal,
+        profile.pricing,
+        load_factor=pricing_load_factor,
+        basis="gross_aal",
+    )
+    # Stamp honesty notes onto data_labels when it supports notes
+    if hasattr(data_labels, "notes"):
+        extra = [
+            f"Treaty {financial.treaty.name} ({financial.treaty.status})",
+            f"Pricing {pricing.status}: load×{pricing.load_factor}",
+        ]
+        data_labels.notes = list(getattr(data_labels, "notes", []) or []) + extra
     accum = build_accumulation_summary(work, profile.tier_names)
+    from packages.cat_core.depth_damage import build_depth_damage_summary
+
+    depth_damage = build_depth_damage_summary(work, profile)
     metrics = MetricsPayload(
         run_id=run_id,
         portfolio_id=portfolio_id,
         assumptions_version=profile.assumptions_version,
         data_labels=data_labels,
         n_insured_houses=int(len(work)),
-        total_tiv_kes=float(work["tiv_kes"].sum()),
+        total_tiv_kes=total_tiv,
         location_label=location_label,
         tier_losses=tier_losses,
         ep_curve=ep_curve,
         aal_kes=round(aal, 2),
         capital_band=capital,
+        financial=financial,
+        pricing=pricing,
         hazard_model_version=hazard_model_version,
         vuln_model_version=vuln_model_version,
         baseline_delta=dict(baseline_delta or {}),
         accumulation_summary=accum,
+        depth_damage_summary=depth_damage,
         warnings=list(warnings or []),
     )
     return work, metrics, tier_losses, capital
@@ -92,6 +125,22 @@ def get_allowlist(metrics: MetricsPayload) -> dict[str, Any]:
     for t in metrics.tier_losses:
         allow[f"tier_loss_{t.tier}_kes"] = t.loss_kes
         allow[f"ep_loss_rp{t.return_period}_kes"] = t.loss_kes
+
+    fin = metrics.financial
+    if fin is not None:
+        allow["aal_gross_kes"] = fin.aal_gross_kes
+        allow["aal_net_kes"] = fin.aal_net_kes
+        allow["aal_ceded_kes"] = fin.aal_ceded_kes
+        allow["treaty_name"] = fin.treaty.name
+        allow["treaty_attachment_kes"] = fin.treaty.attachment_kes
+        allow["treaty_limit_kes"] = fin.treaty.limit_kes
+        allow["treaty_retention_kes"] = fin.treaty.retention_kes
+        for layer in fin.layered_by_tier:
+            allow[f"net_loss_{layer.tier}_kes"] = layer.net_kes
+            allow[f"recovery_{layer.tier}_kes"] = layer.recovery_kes
+    if metrics.pricing is not None:
+        allow["technical_premium_kes"] = metrics.pricing.technical_premium_kes
+        allow["pricing_load_factor"] = metrics.pricing.load_factor
 
     by_class = (metrics.accumulation_summary or {}).get("by_housing_class") or []
     if by_class:

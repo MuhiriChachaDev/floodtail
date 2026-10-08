@@ -38,6 +38,10 @@ class CreateRunRequest(BaseModel):
     require_human_gate_1: bool = False
     features_approved: bool = True
     force_ollama_down: bool = False  # tests / offline demos
+    # Optional XL / pricing overrides (absolute KES / load); else profile defaults
+    treaty_attachment_kes: Optional[float] = Field(default=None, ge=0.0)
+    treaty_limit_kes: Optional[float] = Field(default=None, ge=0.0)
+    pricing_load_factor: Optional[float] = Field(default=None, ge=1.0, le=3.0)
 
 
 class ApproveRequest(BaseModel):
@@ -53,6 +57,12 @@ def _profile_for_run(settings: SettingsDep, body: CreateRunRequest) -> Assumptio
         data["d_max_m"] = body.d_max_m
     if body.assumptions_version is not None:
         data["assumptions_version"] = body.assumptions_version
+    if body.treaty_attachment_kes is not None:
+        data["treaty"]["attachment_kes"] = body.treaty_attachment_kes
+    if body.treaty_limit_kes is not None:
+        data["treaty"]["limit_kes"] = body.treaty_limit_kes
+    if body.pricing_load_factor is not None:
+        data["pricing"]["default_load_factor"] = body.pricing_load_factor
     return AssumptionsProfile(**data)
 
 
@@ -122,6 +132,9 @@ def create_run(
         require_human_gate_1=body.require_human_gate_1,
         assumptions_version=profile.assumptions_version,
         d_max_m=profile.d_max_m,
+        treaty_attachment_kes=body.treaty_attachment_kes,
+        treaty_limit_kes=body.treaty_limit_kes,
+        pricing_load_factor=body.pricing_load_factor,
         tenant_id=ctx.tenant_id,
         actor=ctx.actor,
     )

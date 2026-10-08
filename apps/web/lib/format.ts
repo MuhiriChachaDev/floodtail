@@ -19,6 +19,8 @@ export function formatKes(value: number, compact = true): string {
 export function classLabel(housing: string): string {
   const map: Record<string, string> = {
     formal_masonry: "Solid building",
+    permanent_masonry: "Permanent masonry",
+    concrete_rcc: "Concrete RCC",
     semi_permanent: "Semi-permanent home",
     informal_iron_sheet: "Iron-sheet home",
     apartment: "Apartment",

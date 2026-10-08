@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -23,6 +25,34 @@ class CapitalPolicy(BaseModel):
         description="Ceiling also capped at this fraction of total TIV.",
     )
     currency: str = Field(default="KES")
+
+
+class TreatyPolicy(BaseModel):
+    """Prototype single-layer XL terms (absolute KES overrides or TIV fractions)."""
+
+    name: str = "prototype_xl_v1"
+    status: str = "PROTOTYPE"
+    currency: str = "KES"
+    # Absolute overrides win when set; otherwise fractions of portfolio TIV apply.
+    attachment_kes: Optional[float] = Field(default=None, ge=0.0)
+    limit_kes: Optional[float] = Field(default=None, ge=0.0)
+    retention_kes: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        description="Cedent retention display; defaults to attachment when unset.",
+    )
+    attachment_tiv_fraction: float = Field(default=0.05, ge=0.0, le=1.0)
+    limit_tiv_fraction: float = Field(default=0.15, ge=0.0, le=1.0)
+    notes: list[str] = Field(default_factory=list)
+
+
+class PricingPolicy(BaseModel):
+    """Technical premium indication defaults (not a binding quote)."""
+
+    status: str = "PROTOTYPE"
+    currency: str = "KES"
+    default_load_factor: float = Field(default=1.25, ge=1.0, le=3.0)
+    notes: list[str] = Field(default_factory=list)
 
 
 class AssumptionsProfile(BaseModel):
@@ -49,6 +79,8 @@ class AssumptionsProfile(BaseModel):
         ]
     )
     capital: CapitalPolicy = Field(default_factory=CapitalPolicy)
+    treaty: TreatyPolicy = Field(default_factory=TreatyPolicy)
+    pricing: PricingPolicy = Field(default_factory=PricingPolicy)
 
     @field_validator("return_periods")
     @classmethod

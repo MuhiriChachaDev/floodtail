@@ -48,12 +48,131 @@ export type RunStage = {
   warnings?: string[];
 };
 
+export type EPPoint = {
+  return_period: number;
+  aep: number;
+  loss_kes: number;
+};
+
+export type TierLoss = {
+  tier: string;
+  return_period: number;
+  aep: number;
+  loss_kes: number;
+  mean_damage_ratio?: number | null;
+};
+
+export type CapitalBand = {
+  floor_kes: number;
+  central_kes: number;
+  ceiling_kes: number;
+  currency?: string;
+  method?: string;
+  floor_basis?: string;
+  central_basis?: string;
+  ceiling_basis?: string;
+  notes?: string[];
+};
+
+export type DataLabels = {
+  synthetic_exposure?: boolean;
+  proxy_hazard?: boolean;
+  assumed_rp?: boolean;
+  d_max_m?: number;
+  location_flexible?: boolean;
+  notes?: string[];
+};
+
+export type TreatyTerms = {
+  name: string;
+  status?: string;
+  currency?: string;
+  attachment_kes: number;
+  limit_kes: number;
+  retention_kes: number;
+  notes?: string[];
+};
+
+export type LayeredLoss = {
+  tier: string;
+  return_period: number;
+  aep: number;
+  gross_kes: number;
+  retained_kes: number;
+  recovery_kes: number;
+  net_kes: number;
+};
+
+export type FinancialView = {
+  treaty: TreatyTerms;
+  layered_by_tier: LayeredLoss[];
+  ep_curve_gross?: EPPoint[];
+  ep_curve_net?: EPPoint[];
+  aal_gross_kes: number;
+  aal_net_kes: number;
+  aal_ceded_kes: number;
+  reference_tier?: string;
+};
+
+export type PricingIndication = {
+  aal_basis_kes: number;
+  load_factor: number;
+  technical_premium_kes: number;
+  currency?: string;
+  formula?: string;
+  basis?: string;
+  status?: string;
+  notes?: string[];
+};
+
 export type MetricsPayload = {
+  run_id?: string;
+  portfolio_id?: string;
+  assumptions_version?: string;
   total_tiv_kes?: number;
   aal_kes?: number;
+  n_insured_houses?: number;
   n_locations?: number;
-  ep_curve?: Array<{ return_period?: number; loss_kes?: number }>;
-  data_labels?: Record<string, unknown>;
+  location_label?: string;
+  ep_curve?: EPPoint[];
+  tier_losses?: TierLoss[];
+  capital_band?: CapitalBand | null;
+  financial?: FinancialView | null;
+  pricing?: PricingIndication | null;
+  hazard_model_version?: string | null;
+  vuln_model_version?: string | null;
+  baseline_delta?: Record<string, unknown>;
+  accumulation_summary?: {
+    by_housing_class?: Array<Record<string, unknown>>;
+    top_locations?: Array<Record<string, unknown>>;
+    reference_tier?: string;
+  };
+  depth_damage_summary?: {
+    source?: string;
+    d_max_m?: number;
+    assumptions_version?: string;
+    by_tier?: Array<{
+      tier: string;
+      return_period: number;
+      mean_depth_m: number;
+      mean_damage_ratio: number;
+      p90_depth_m?: number;
+      p90_damage_ratio?: number;
+    }>;
+    by_housing_class?: Array<{
+      housing_class: string;
+      n: number;
+      reference_tier?: string;
+      mean_depth_m: number;
+      mean_damage_ratio: number;
+    }>;
+    prior_curves?: Record<
+      string,
+      Array<{ depth_m: number; damage_ratio: number }>
+    >;
+  };
+  data_labels?: DataLabels;
+  warnings?: string[];
   [key: string]: unknown;
 };
 

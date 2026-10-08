@@ -20,3 +20,9 @@ langgraph>=0.1
 shap>=0.45
 cryptography>=42
 python-jose[cryptography]>=3.3
+# RAG + long-term memory (Postgres / pgvector)
+pypdf>=4.2
+python-docx>=1.1
+olefile>=0.47
+psycopg[binary]>=3.1
+pgvector>=0.3

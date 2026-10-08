@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, ChevronDown, Home, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
+import { KenyaReLogo } from "@/components/brand/KenyaReLogo";
 import { useAuth, type Role } from "@/lib/auth";
 import { NAV_GROUPS } from "@/lib/nav";
 import { NavDropdown } from "./NavDropdown";
@@ -43,13 +44,8 @@ export function Header() {
       <div className="page-shell flex h-16 items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-6">
           <Link href="/home" className="flex shrink-0 items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-red-500 to-red-700 font-display text-sm font-bold text-white shadow-lg">
-              K
-            </span>
-            <span className="hidden leading-tight sm:block">
-              <span className="block font-display text-sm font-semibold tracking-wide text-white">
-                KENYA RE
-              </span>
+            <KenyaReLogo variant="white" heightClass="h-8 sm:h-9" priority />
+            <span className="hidden border-l border-white/15 pl-3 leading-tight sm:block">
               <span className="block text-[10px] uppercase tracking-[0.16em] text-white/45">
                 Flood Risk Intelligence
               </span>

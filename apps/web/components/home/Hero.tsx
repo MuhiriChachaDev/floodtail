@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { MapPin } from "lucide-react";
+import { KenyaReLogo } from "@/components/brand/KenyaReLogo";
 
 export function Hero() {
   return (
@@ -18,11 +19,12 @@ export function Hero() {
 
       <div className="relative grid gap-8 px-6 py-12 sm:px-10 lg:grid-cols-[1.2fr_0.8fr] lg:py-16">
         <div className="animate-fade-up max-w-xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+          <KenyaReLogo variant="white" heightClass="h-10 sm:h-12" priority />
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
             Smarter insights. Stronger decisions.
           </p>
           <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-[2.6rem]">
-            KENYA RE Flood Risk Intelligence Platform
+            Flood Risk Intelligence Platform
           </h1>
           <p className="mt-4 max-w-lg text-base text-white/70">
             One place to see what Kenya Re covers in Nairobi, how floods could

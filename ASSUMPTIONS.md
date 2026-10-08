@@ -89,6 +89,8 @@ Do not upgrade status without evidence in this register.
 | F3 | AAL ≈ Σ (AEP_tier × tier_portfolio_loss) over discrete RPs | PROTOTYPE | Documented discrete approximation |
 | F4 | LLM never emits loss / EP / AAL / premium | SUPPLIED | Hard boundary + output allowlist |
 | F5 | Optional light MC only for uncertainty bands | PROTOTYPE | Not product core |
+| F6 | Single-layer XL: `recovery = min(limit, max(0, gross − attachment))`; `net = gross − recovery` | PROTOTYPE | Default attachment 5% TIV, limit 15% TIV; not a multi-layer programme |
+| F7 | Technical premium = gross AAL × load factor (default 1.25) | PROTOTYPE | Indication only; human approval required |
 
 ### Capital / set-aside band (PROTOTYPE)
 

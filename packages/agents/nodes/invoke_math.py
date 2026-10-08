@@ -101,8 +101,16 @@ def node_invoke_math(state: AgentGraphState) -> AgentGraphState:
         out,  # type: ignore[arg-type]
         stage="ep_capital",
         status=StageStatus.OK,
-        message="EP curve + capital band computed",
-        data={"aal_kes": metrics.aal_kes},
+        message="EP curve + XL financial view + capital band computed",
+        data={
+            "aal_kes": metrics.aal_kes,
+            "aal_net_kes": (
+                metrics.financial.aal_net_kes if metrics.financial else None
+            ),
+            "technical_premium_kes": (
+                metrics.pricing.technical_premium_kes if metrics.pricing else None
+            ),
+        },
         critical=True,
     )
 

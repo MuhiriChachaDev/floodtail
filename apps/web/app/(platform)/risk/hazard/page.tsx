@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { FloodMap } from "@/components/map/FloodMap";
-import { Notice } from "@/components/ui/Notice";
+import { PrototypeBadge } from "@/components/ui/PrototypeBadge";
 import { clsx } from "clsx";
 
 const LAYERS = [
@@ -31,12 +31,13 @@ export default function HazardPage() {
         question="See physical flood conditions together with the properties Kenya Re covers."
       />
 
-      <Notice>
-        Always separate <strong className="text-white">observed</strong> information
-        (what was seen) from <strong className="text-white">modelled</strong>{" "}
-        information (what the flood model estimates). This demo mostly shows a
-        modelled proxy for Nairobi surface-water flood.
-      </Notice>
+      <PrototypeBadge title="Map UX shell — not live hazard tiles from the API">
+        Separate <strong className="text-white">observed</strong> from{" "}
+        <strong className="text-white">modelled</strong> information. This screen
+        is illustrative; portfolio loss and EP come from a test run on{" "}
+        <strong className="text-white">Loss</strong> /{" "}
+        <strong className="text-white">Analytics</strong>, not from this map.
+      </PrototypeBadge>
 
       <div className="flex flex-wrap gap-2">
         <button

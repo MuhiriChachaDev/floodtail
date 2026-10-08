@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, ShieldCheck } from "lucide-react";
+import { KenyaReLogo } from "@/components/brand/KenyaReLogo";
 import { useAuth, type Role } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -47,7 +48,8 @@ export default function LoginPage() {
 
       <div className="relative grid w-full max-w-5xl gap-8 lg:grid-cols-2">
         <section className="hidden flex-col justify-center lg:flex">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+          <KenyaReLogo variant="white" heightClass="h-12" priority />
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
             FLOODTAIL
           </p>
           <h1 className="mt-3 font-display text-4xl font-semibold leading-tight text-white">
@@ -66,10 +68,8 @@ export default function LoginPage() {
 
         <section className="glass mx-auto w-full max-w-md rounded-3xl p-7 sm:p-8">
           <div className="mb-6 flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-red-500 to-red-700 font-display font-bold">
-              K
-            </span>
-            <div>
+            <KenyaReLogo variant="white" heightClass="h-10" />
+            <div className="border-l border-white/15 pl-3">
               <p className="font-display text-lg font-semibold">FLOODTAIL</p>
               <p className="text-xs text-white/45">Secure Kenya Re environment</p>
             </div>

@@ -25,6 +25,9 @@ router = APIRouter()
 class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     force_ollama_down: bool = False
+    use_rag: bool = True
+    use_memory: bool = True
+    session_id: Optional[str] = Field(default=None, max_length=128)
 
 
 @router.get("/runs/{run_id}/narrative")
@@ -90,12 +93,19 @@ def query_run(
         raise HTTPException(status_code=404, detail="metrics not available")
 
     allowlist = run.allowlist or get_allowlist(run.metrics)
+    from packages.rag.config import configure_rag
+
+    configure_rag(settings.rag_settings())
     result = answer_query(
         body.question,
         allowlist,
         ollama_host=settings.ollama_host,
         ollama_model=settings.ollama_primary_model,
         force_down=body.force_ollama_down or run.ollama_degraded,
+        tenant_id=ctx.tenant_id,
+        session_id=body.session_id or run_id,
+        use_rag=body.use_rag,
+        use_memory=body.use_memory,
     )
     append_audit(
         "query",
