@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
+    # Comma-separated browser origins allowed to call the API (no * in production).
+    # Example: https://floodtail.vercel.app,https://floodtail-git-main.vercel.app
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # OpenAPI /docs. None = on in non-prod, off in production.
+    # Set ENABLE_DOCS=true|false to override.
+    enable_docs: bool | None = None
+
     # Paths
     project_root: Path = _ROOT
     nairobi_data_dir: Path = _ROOT / "Nairobi_Data"
@@ -99,6 +107,24 @@ class Settings(BaseSettings):
     def parsed_return_periods(self) -> list[int]:
         parts = [p.strip() for p in self.return_periods.split(",") if p.strip()]
         return [int(p) for p in parts]
+
+    def parsed_cors_origins(self) -> list[str]:
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if self.env == "production" and ("*" in origins or not origins):
+            raise ValueError(
+                "CORS_ORIGINS must be an explicit allowlist in production (no '*')"
+            )
+        return origins
+
+    @property
+    def is_production(self) -> bool:
+        return self.env == "production"
+
+    @property
+    def docs_enabled(self) -> bool:
+        if self.enable_docs is not None:
+            return self.enable_docs
+        return not self.is_production
 
     def assumptions_profile(self) -> AssumptionsProfile:
         return AssumptionsProfile(

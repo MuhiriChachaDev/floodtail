@@ -19,7 +19,7 @@ Reinsurance-oriented **Nairobi County pluvial flood** catastrophe prototype for 
 | Deterministic loss, EP, AAL, accumulation | Kenya-wide Monte Carlo catalogue |
 | kenyaRE-hard security (Keycloak, RBAC, audit) | Streamlit UI |
 
-Streamlit has been **removed**. The product surface for the hackathon is the **FastAPI** backend; `apps/web` is an **empty Next.js scaffold** (no UI features yet).
+Streamlit has been **removed**. Product surface: **FastAPI** backend + **Next.js** UI in `apps/web` (Kenya Re flood risk screens).
 
 ---
 
@@ -52,7 +52,9 @@ packages/
   llm/       Ollama client
 ```
 
-Infra: Docker Compose (`api` + `postgres` (pgvector) + `keycloak` + `ollama`). Deploy target: Render (API + Ollama).
+Infra: Docker Compose (`api` + `postgres` (pgvector) + `keycloak` + `ollama`).
+
+**Production deploy:** frontend on **Vercel** (`apps/web`); backend on a **Contabo VPS** (`docker-compose.prod.yml` + Nginx + Ollama + Postgres). See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 **RAG / memory:** `POST /v1/knowledge/documents` ingests PDF/DOCX/text; agents retrieve via tools. Long-term memory: `/v1/memory/*`. Both prefer Postgres+pgvector; fall back to in-memory when Postgres is down. LLMs still never invent EP/AAL/premium — those stay in `cat_core`.
 
@@ -67,10 +69,14 @@ docker compose up --build
 
 # Or local API (Postgres/Ollama optional; see DEPLOYMENT.md)
 uvicorn apps.api.main:app --reload --port 8000
+
+# Frontend
+cd apps/web && npm install && npm run dev
 ```
 
 Health: `GET /v1/health`  
-OpenAPI: `http://localhost:8000/docs`
+OpenAPI: `http://localhost:8000/docs`  
+Production: [DEPLOYMENT.md](DEPLOYMENT.md) (Vercel + Contabo)
 
 Typical flow:
 
@@ -95,7 +101,7 @@ There are **no Streamlit launch instructions**. Frontend UI is deferred.
 | [EXPLAINABILITY.md](EXPLAINABILITY.md) | SHAP, counterfactuals, narrative validation |
 | [MODEL_CARD.md](MODEL_CARD.md) | Nairobi prototype model card |
 | [AGENTS.md](AGENTS.md) | Agentic + ML + deterministic stage list |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Compose, Ollama, Keycloak, Render |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | **Production plan** — Vercel frontend + Contabo VPS backend |
 | [RISK_GOVERNANCE.md](RISK_GOVERNANCE.md) | Human-in-loop, RBAC, audit |
 | [DEMO_SCRIPT.md](DEMO_SCRIPT.md) | Judge demo against API/metrics |
 | [FINAL_VALIDATION_REPORT.md](FINAL_VALIDATION_REPORT.md) | Superseded; pending re-validation |

@@ -28,6 +28,16 @@ class Recommendation(str, Enum):
     ESCALATE = "ESCALATE"
 
 
+# Canonical caveat for discrete-tier AAL (not a stochastic catalogue mean).
+AAL_METHOD_DISCRETE = "discrete_ep_sum"
+AAL_CAVEAT_DISCRETE = (
+    "AAL ≈ Σ(AEP_tier × tier_portfolio_loss) over a discrete return-period map. "
+    "This is a PROTOTYPE approximation — not the mean of a stochastic year-loss "
+    "catalogue used by vendor CAT models (Verisk / Moody’s RMS / etc.). "
+    "Do not treat as underwriting-grade AAL without recalibration."
+)
+
+
 class DataLabels(BaseModel):
     """Honesty labels attached to every metrics / insight payload."""
 
@@ -36,6 +46,8 @@ class DataLabels(BaseModel):
     assumed_rp: bool = True
     d_max_m: float = 4.0
     location_flexible: bool = True
+    aal_method: str = AAL_METHOD_DISCRETE
+    aal_caveat: str = AAL_CAVEAT_DISCRETE
     notes: list[str] = Field(default_factory=list)
 
 

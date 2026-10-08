@@ -21,6 +21,7 @@ from apps.api.routers import (
 from apps.api.settings import get_settings
 
 _settings = get_settings()
+_show_docs = _settings.docs_enabled
 
 app = FastAPI(
     title="FLOODTAIL Flood CAT API",
@@ -30,16 +31,26 @@ app = FastAPI(
         "Agentic LangGraph orchestration + predictive ML + grounded EP/capital math. "
         "Phase F: E2E hardening — health/registry readiness, integration test, insight demo."
     ),
+    docs_url="/docs" if _show_docs else None,
+    redoc_url="/redoc" if _show_docs else None,
+    openapi_url="/openapi.json" if _show_docs else None,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+    allow_origins=_settings.parsed_cors_origins(),
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Accept",
+        "Authorization",
+        "Content-Type",
+        "X-Floodtail-Role",
+        "X-Floodtail-Actor",
+        "X-Floodtail-Tenant",
+        "X-Request-Id",
     ],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    max_age=600,
 )
 
 app.include_router(health.router, prefix="/v1", tags=["health"])
