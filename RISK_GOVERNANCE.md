@@ -1,186 +1,102 @@
-# FLOODTAIL — Risk Governance & Human-in-the-Loop
+# RISK GOVERNANCE — Reinsurer Prototype (Nairobi)
 
-## Overview
-
-FLOODTAIL enforces a **mandatory human-in-the-loop** governance model.
-No underwriting decision is ever auto-executed. Every policy must be reviewed
-and explicitly decided by a named human underwriter before it is considered final.
+Human-in-the-loop, RBAC, and audit controls for the Team A Nairobi Urban Flood CAT prototype. Security posture: **kenyaRE-hard** (not demo-lite).
 
 ---
 
-## Decision Flow
+## Principles
 
-```
-11-Agent Orchestration
-        ↓
-DecisionEvidencePackage (per policy)
-        ↓
-Human Underwriter Review
-        ↓
-  ┌─────┼─────┐
-  │     │     │
-ACCEPT MODIFY REJECT
-  │     │     │
-  ↓     ↓     ↓
-Audit Record (SHA-256 Hash-Chained)
-```
+1. **AI recommends; human decides** for underwriting-relevant outcomes.  
+2. **Deterministic core owns money numbers**; LLM owns prose only after validation.  
+3. **Every material action is auditable** (upload, train, run, enhance, query, decide, approve).  
+4. **Synthetic / proxy / prototype labels** travel with every decision package.  
+5. Prototype ≠ production authority to bind risk on real portfolios.
 
 ---
 
-## Human Decision Types
+## Human-in-the-loop
 
-| Decision | Requirements | Final Premium |
-|----------|-------------|---------------|
-| **ACCEPT** | No additional input needed | Original technical premium |
-| **MODIFY** | Mandatory: `reason` (non-empty) + `modified_premium` (> 0) | User-specified premium |
-| **REJECT** | Mandatory: `reason` (non-empty) | $0.00 |
+| Gate | When | Who | Required |
+|------|------|-----|----------|
+| HumanGate_1 | After enrichment / free-text exposure, before ML+financial (if enabled) | underwriter / actuary / admin | Configurable |
+| HumanGate_2 | After metrics + appetite; final decision | underwriter / actuary / admin | Mandatory for “accepted” demo decisions |
+| Curve patch | LLM proposes vuln parameter change | actuary / admin | Always human-approved |
+| Model pin | Promote trained hazard/vuln version | data_scientist / admin | Explicit pin; no silent retrain on click |
 
-### Override Reason Enforcement
+Decision API: `POST /v1/runs/{id}/approve` with **mandatory justification** text. Empty reasons rejected.
 
-- `MODIFY` without a reason → `ValidationError` raised, decision blocked
-- `MODIFY` without a positive `modified_premium` → `ValidationError` raised, decision blocked
-- `REJECT` without a reason → `ValidationError` raised, decision blocked
-- `ACCEPT` does not require a reason (implicit approval of AI recommendation)
-
-**No silent overrides are permitted.** Every deviation from the AI recommendation
-must be explicitly justified.
-
-Implementation: [`DecisionEngine.record_human_decision()`](src/decision.py)
+Appetite engine (deterministic) may emit `ACCEPT` / `REVIEW` / `ESCALATE`; humans override with reason codes.
 
 ---
 
-## Decision Confidence Model
+## RBAC
 
-### 4-Quadrant Classification
+| Role | Typical permissions |
+|------|---------------------|
+| `admin` | Full; train; pin; config |
+| `data_scientist` | Train / list / pin models; read runs |
+| `actuary` | Runs, metrics, explanations, approve, curve patches |
+| `underwriter` | Portfolios, runs, metrics, narrative, query, approve (not train) |
+| `client_viewer` | Read metrics / narrative for assigned tenant only |
+| `regulator` | Read audit + metrics; no mutate |
+| `auditor` | Read audit chain; verify `chain_valid` |
 
-The decision confidence model maps every policy into one of four quadrants:
+Enforcement: JWT claims → `packages/security/rbac.py` on every router. TenantContext on portfolio/run IDs.
 
-```
-                    HIGH CONFIDENCE
-                          │
-     LOW_RISK_HIGH_CONF   │   HIGH_RISK_HIGH_CONF
-     "Standard Accept"    │   "Accept with Conditions"
-                          │
-  ────────────────────────┼────────────────────────
-                          │
-     LOW_RISK_LOW_CONF    │   HIGH_RISK_LOW_CONF
-     "Needs More Data"    │   "Escalate / Block"
-                          │
-                    LOW CONFIDENCE
-```
-
-### Confidence Scoring Factors
-
-| Factor | Impact | Condition |
-|--------|--------|-----------|
-| Data Quality Score ≥ 90% | No penalty | High quality data |
-| Data Quality Score 70-89% | −0.20 | Moderate quality |
-| Data Quality Score < 70% | −0.45 | Low quality + WARNING |
-| Critical Data Issues | −0.15 per issue (max −0.35) | Quality failures |
-| Simulation Years < 10,000 | −0.15 | Limited tail sample support |
-| Benchmark Vulnerability Curve | −0.10 | Prototype curves in use |
-
-### Confidence Levels
-
-| Score Range | Level |
-|-------------|-------|
-| ≥ 0.75 | HIGH |
-| 0.50 – 0.74 | MEDIUM |
-| < 0.50 | LOW |
-
-Implementation: [`DecisionEngine.evaluate_confidence()`](src/decision.py)
+Tests expected: `test_rbac.py`, `test_prompt_injection.py`, `test_audit_chain.py`.
 
 ---
 
-## Cryptographic Audit Hash Chain
+## Audit chain
 
-### Architecture
+SHA-256 hash-chained log for:
 
-Every underwriting decision is recorded as an immutable `AuditRecord`
-linked to its predecessor via SHA-256 cryptographic hash chaining.
+- Portfolio upload / free-text ingest  
+- Model train + register + pin  
+- Run start / stage complete / fail  
+- Narrative / query (incl. validation fail)  
+- Human approve / decision  
 
-```
-Genesis: previous_hash = "0" * 64 (64 zero characters)
-    ↓
-Record 1: decision_hash = SHA-256(genesis_hash | record_1_payload)
-    ↓
-Record 2: decision_hash = SHA-256(record_1_hash | record_2_payload)
-    ↓
-Record N: decision_hash = SHA-256(record_N-1_hash | record_N_payload)
-```
+Each event: `prev_hash`, `payload_hash`, actor, role, tenant, timestamp, action type.  
+`GET /v1/audit` returns chain + `chain_valid`.
 
-### Hash Payload
-
-The SHA-256 hash is computed over a pipe-delimited string containing:
-
-```
-{previous_hash}|{timestamp}|{run_id}|{policy_id}|{user}|
-{recommendation}|{final_decision}|{original_premium:.2f}|{new_premium:.2f}|
-{reason}|{model_version}|{data_version}
-```
-
-### Properties
-
-- **Append-only:** Records can only be added, never modified or deleted
-- **Tamper-evident:** Modifying any record breaks the hash chain
-- **Verifiable:** `verify_audit_chain()` recomputes all hashes sequentially
-  and detects any inconsistency
-- **Genesis-linked:** First record always chains from `GENESIS_HASH`
-- **Persisted:** All records stored in SQLite `audit_log` table with foreign key
-  to `runs(run_id)`
-
-### Verification
-
-```python
-from src.audit_log import AuditManager
-from src.database import DatabaseManager
-
-db = DatabaseManager("floodtail.db")
-audit = AuditManager(db)
-
-result = audit.verify_audit_chain()
-assert result.is_valid is True
-print(f"Chain verified: {result.record_count} records, no tampering detected.")
-```
-
-If tampering is detected:
-
-```python
-result.is_valid        # False
-result.broken_index    # Index of the tampered record
-result.expected_hash   # What the hash should be
-result.actual_hash     # What was found in the database
-result.message         # Human-readable description
-```
-
-Implementation: [`AuditManager`](src/audit_log.py), [`calculate_decision_hash()`](src/audit_log.py)
+Tamper or broken link → `chain_valid=false`; treat as governance fail for demo sign-off.
 
 ---
 
-## Audit Record Schema
+## Security controls (summary)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | INTEGER PRIMARY KEY | Auto-incrementing record ID |
-| `timestamp` | TEXT | ISO 8601 UTC timestamp |
-| `run_id` | TEXT | Foreign key to `runs(run_id)` |
-| `policy_id` | TEXT | Policy being decided |
-| `user` | TEXT | Human underwriter identity (non-empty) |
-| `recommendation` | TEXT | AI recommendation (ACCEPT/REVIEW/ESCALATE) |
-| `final_decision` | TEXT | Human decision (ACCEPT/MODIFY/REJECT) |
-| `original_premium` | REAL | AI-computed technical premium |
-| `new_premium` | REAL | Final premium after human decision |
-| `reason` | TEXT | Mandatory justification for MODIFY/REJECT |
-| `model_version` | TEXT | Model version used |
-| `data_version` | TEXT | Data version used |
-| `decision_hash` | TEXT | SHA-256 hash of this record |
-| `previous_hash` | TEXT | SHA-256 hash of preceding record |
+| Control | Implementation |
+|---------|----------------|
+| AuthN | Keycloak (compose) / OIDC JWT |
+| AuthZ | Full RBAC as above |
+| Tenant | Enforce on portfolio/run resources |
+| Encryption | AES-GCM for PII at rest; irreversible `hash_token` for IDs |
+| Prompt defence | Injection → 400; sanitize; `<data>` wrap |
+| Output validation | PII / treaty / **number allowlist** |
+| API hygiene | CORS lockdown, rate limits, max upload, security headers |
+| Integrity | Model/curve version hashes; run lineage JSON |
 
 ---
 
-## User Identity Requirements
+## Evidence package (per policy / location or portfolio summary)
 
-- User identity (`user`) is **mandatory** on all decisions
-- Empty or whitespace-only user strings → `ValidationError`
-- User identity is included in the SHA-256 hash payload
-- All decisions are fully attributable to a named individual
+Minimum contents for HumanGate_2:
+
+- Key metrics (TIV, GU, AAL contrib, tier losses as applicable)  
+- Model versions + `assumptions_version` + `data_labels`  
+- Appetite recommendation + flags  
+- Top SHAP / accumulation drivers (if available)  
+- Human justification (on approve)
+
+LLM briefing may accompany the package; **metrics JSON is authoritative**.
+
+---
+
+## Acceptable use for hackathon judges
+
+- Demonstrate gates, RBAC denial (e.g. underwriter blocked from train), and audit verify  
+- Show AI changing **inputs or ML predictions**, not inventing EP numbers  
+- Disclose synthetic exposure and proxy hazard in every spoken claim  
+
+Do not present outputs as production reinsurance pricing without recalibration.

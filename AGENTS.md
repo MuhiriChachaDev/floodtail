@@ -1,289 +1,113 @@
-# FLOODTAIL — Multi-Agent Decision Architecture
+# FLOODTAIL — Agentic + ML + Deterministic Stages (Nairobi)
 
-## Overview
+Orchestration for the **Nairobi Urban Flood CAT** rebuild. This replaces the former Kenya-wide Streamlit **11-agent** Monte Carlo surface.
 
-The FLOODTAIL catastrophe engine is orchestrated by **11 specialized, typed agents**
-executing sequentially in dependency order. Each agent has:
-
-- **Strictly typed inputs** drawn from upstream agent outputs
-- **Deterministic, auditable logic** (no LLMs or stochastic inference)
-- **Typed `AgentResult` output** containing status, data, warnings, and human-readable message
-- **Controlled failure behaviour**: a `FAILED` status from any critical agent halts the pipeline
-
-The orchestration is executed by [`AgentOrchestrator.run_workflow()`](src/agent_orchestrator.py)
-and produces a `WorkflowExecutionResult` containing:
-- A complete `AgentWorkflowTrace` (all 11 step records)
-- Per-policy `DecisionEvidencePackage` objects for human underwriting review
-- Aggregated warnings from all agents
+**Runtime:** LangGraph-style state machine in `packages/agents` + predictive ML in `packages/ml` + deterministic math in `packages/cat_core`.  
+**LLM:** Ollama only where marked Agentic.  
+**Halt:** Critical stage `FAILED` stops the run; non-critical failures warn and continue where safe.
 
 ---
 
-## Execution Order
+## Stage list
 
-| Step | Agent | Purpose | Halt on Failure |
-|------|-------|---------|-----------------|
-| 1 | ExposureIntelligenceAgent | Data quality, geocoding, exposure validation | ✅ |
-| 2 | HazardAnalysisAgent | Spatial flood footprint and event analysis | ✅ |
-| 3 | VulnerabilityReviewAgent | Depth-damage curves and construction modifiers | ❌ |
-| 4 | LossAnalysisAgent | ELT/YLT reconciliation and portfolio AAL | ✅ |
-| 5 | TailRiskAgent | VaR, TVaR, tail allocation by policy | ✅ |
-| 6 | AccumulationAgent | Geographic concentration, HHI, co-hits | ❌ |
-| 7 | PricingIntelligenceAgent | Risk-based technical pricing waterfall | ✅ |
-| 8 | ScenarioAgent | CRN counterfactual marginal TVaR impacts | ❌ |
-| 9 | RiskAppetiteAgent | Deterministic underwriting governance rules | ❌ |
-| 10 | DecisionSupportAgent | Evidence package assembly and confidence scoring | ❌ |
-| 11 | GovernanceAgent | Trace validation and audit readiness check | ❌ |
+| Stage | Name | Type | Critical? | Purpose |
+|-------|------|------|-----------|---------|
+| 1 | SchemaValidate / PII / Geocode / Enrich | Agentic + rules | Yes | Validate Nairobi schema, detect/hash PII, geocode assist, geo enrichment features |
+| 2 | FreeTextExposure (optional) | **Agentic LLM** | No | Free-text → structured synthetic exposure rows → schema check |
+| 3 | HumanGate_1 | Human + agent messaging | If enabled | Approve features / exposure before ML + financial |
+| 4 | PredictHazard | **Predictive ML** | Yes | Load pinned HazardModel; per-tier susceptibility; store version + deltas |
+| 5 | PredictVulnerability | **Predictive ML** | Yes | Load pinned VulnerabilityModel; damage ratios; SHAP-ready |
+| 6 | Financial + EP + Accumulation | **Deterministic** | Yes | Depth map, GU loss, EP/AAL, hotspot/class accumulation, optional pricing |
+| 7 | XAI + Briefing | ML explain + **Agentic LLM** | No | SHAP/CF compute; validated Ollama narrative |
+| 8 | Governance / Audit / HumanGate_2 | Rules + audit | No | Appetite rules, evidence package, approve decision, hash-chain audit |
 
-> **Note:** Step 5 (TailRiskAgent) must execute before Step 6 (AccumulationAgent)
-> because AccumulationAgent requires `tail_dataframe` output from TailRiskAgent.
+Agents produce **structured state**. They do **not** invent loss, EP, AAL, or premium math.
 
 ---
 
-## Agent Reference
+## Stage details
 
-### 1. ExposureIntelligenceAgent
+### 1 — SchemaValidate / PII / Geocode / Enrich
 
-**Module:** `src/agent_orchestrator.py`
+- **Inputs:** Portfolio CSV or built-in Nairobi set; optional enrichment flags  
+- **Logic:** Required columns, bbox, TIV > 0, housing class enum; PII detect → hash/mask; geocode assist; distances to hotspots / OSM  
+- **Outputs:** Clean feature frame, DQ score, warnings  
+- **Failed if:** Empty portfolio, schema fatal, or critical DQ breach  
 
-**Inputs:**
-- `portfolio_df: pd.DataFrame` — cleaned portfolio with policy_id, lat, lon, insured_value, property_type, construction_class, region
-- `dq_auditor: DataQualityAuditor` (optional)
+### 2 — FreeTextExposure (optional)
 
-**Logic:**
-- Runs full data quality audit via `DataQualityAuditor.audit()`
-- Computes quality score, critical issue count, total TIV, policy count
-- Returns `WARNING` if quality score < 80 or critical issues exist
-- Returns `FAILED` if portfolio is empty or null
+- **Inputs:** Free-text description (underwriter / demo)  
+- **Logic:** Ollama → candidate rows → strict schema validation; stamp `synthetic=True`  
+- **Outputs:** Appended / replacement exposure rows  
+- **Note:** Materially changes portfolio when enabled; still not a real book  
 
-**Outputs:**
-- `quality_score`, `policy_count`, `total_tiv`, `critical_issues_count`, `is_clean`
+### 3 — HumanGate_1
 
-**Permissions:** Read-only access to portfolio data
+- **Inputs:** Features + agent notes  
+- **Logic:** RBAC approve endpoint; agent may summarise what will be scored  
+- **Outputs:** `approved_features=true` or halt if gate required  
 
----
+### 4 — PredictHazard
 
-### 2. HazardAnalysisAgent
+- **Inputs:** Feature frame; `hazard_model_version`  
+- **Logic:** Registry load + SHA check; predict per-tier scores; optional baseline-vs-pred delta  
+- **Outputs:** `hazard_score_*`, model hash, lineage  
+- **Failed if:** Missing pinned model or integrity fail  
 
-**Module:** `src/agent_orchestrator.py`
+### 5 — PredictVulnerability
 
-**Inputs:**
-- `hazard_df: pd.DataFrame` — spatial hazard footprints (policy_id, occurrence_id, depth_m, ...)
+- **Inputs:** Depths (from scores × `D_max`), housing class, features; `vuln_model_version`  
+- **Logic:** Predict `damage_ratio` clipped to [0, 1]  
+- **Outputs:** Per-location ratios, model hash  
+- **Failed if:** Missing pinned model or integrity fail  
 
-**Logic:**
-- Counts affected policies, unique events, mean/max flood depths
-- Returns `FAILED` if hazard data is missing or empty
+### 6 — Financial + EP + Accumulation
 
-**Outputs:**
-- `total_impact_records`, `affected_policies_count`, `unique_event_occurrences`, `mean_affected_depth_m`, `max_flood_depth_m`
+- **Inputs:** Ratios, TIV, RP map, hotspot list  
+- **Logic:** `loss = damage_ratio × tiv_kes`; aggregate tiers; EP/AAL; concentration metrics  
+- **Outputs:** Metrics payload with `data_labels`, EP points, accumulation tables  
+- **Failed if:** Reconciliation or empty loss tables  
 
-**Permissions:** Read-only access to hazard data
+### 7 — XAI + Briefing
 
----
+- **Inputs:** Frozen metrics, models, sample rows  
+- **Logic:** SHAP local/global, counterfactuals; Ollama briefing over allowlisted numbers  
+- **Outputs:** Explanation artifacts; narrative or template fallback  
+- **Non-critical:** Run metrics remain valid if briefing fails validation  
 
-### 3. VulnerabilityReviewAgent
+### 8 — Governance / Audit / HumanGate_2
 
-**Module:** `src/agent_orchestrator.py`
-
-**Inputs:**
-- `portfolio_df: pd.DataFrame`
-
-**Logic:**
-- Enumerates distinct property types and construction classes in portfolio
-- Flags that prototype benchmark vulnerability curves are in use
-
-**Outputs:**
-- `curve_version`, `property_types_evaluated`, `construction_classes`, `calibration_status`
-- Always emits `BENCHMARK_VULNERABILITY_CURVE` warning
-
-**Permissions:** Read-only access to portfolio metadata
+- **Inputs:** Metrics, appetite rules, optional decision  
+- **Logic:** Deterministic recommendations; mandatory human reason; SHA-256 audit chain event  
+- **Outputs:** `ready_for_human`, decision record, `chain_valid`  
 
 ---
 
-### 4. LossAnalysisAgent
+## Failure handling
 
-**Module:** `src/agent_orchestrator.py`
+| Type | Behaviour |
+|------|-----------|
+| Critical stage FAILED | Orchestrator halts; run status `FAILED` / `REVIEW_REQUIRED` |
+| Non-critical FAILED | Warning + continue (e.g. narrative template) |
+| Ollama down | Agents degrade to templates; ML + `cat_core` still run |
+| LLM invents numbers | Output validator rejects → template + audit event |
+| Model registry hash mismatch | Predict stages FAILED |
 
-**Inputs:**
-- `elt_df: pd.DataFrame` — Event Loss Table
-- `ylt_df: pd.DataFrame` — Year Loss Table
-
-**Logic:**
-- Computes total simulated loss, portfolio AAL, max annual loss
-- Reconciles ELT total vs YLT total (< 1e-3 tolerance)
-- Returns `FAILED` if reconciliation fails or data is missing
-
-**Outputs:**
-- `total_simulated_loss`, `portfolio_aal`, `simulation_years`, `elt_records_count`, `max_annual_loss`, `loss_reconciliation_passed`
-
-**Permissions:** Read-only access to loss tables
+Structured result per stage: `status`, `message`, `warnings`, `data` (typed).
 
 ---
 
-### 5. TailRiskAgent
+## Explicit non-agents
 
-**Module:** `src/agent_orchestrator.py`
+These are **not** LLM agents and must not be replaced by Ollama:
 
-**Inputs:**
-- `ylt_df: pd.DataFrame`, `elt_df: pd.DataFrame`, `portfolio_df: pd.DataFrame`
-- `confidence: float` (default 0.996 for 1-in-250 return period)
-
-**Logic:**
-- Computes VaR and TVaR at specified confidence via `RiskMetricsEngine`
-- Allocates tail risk to individual policies via `PolicyTailRiskEngine`
-- Validates tail and AAL reconciliation
-- Returns `FAILED` if reconciliation fails
-
-**Outputs:**
-- `portfolio_aal`, `portfolio_var_996`, `portfolio_tvar_996`, `tail_year_count`
-- `tail_allocation` (full `PolicyTailAllocationResult`)
-- `tail_dataframe` (DataFrame with per-policy tail metrics)
-- `top_policy_contributors` (top 5 by tail contribution)
-
-**Permissions:** Read-only access to loss tables and portfolio
+- Hazard / vulnerability **numeric** prediction  
+- Depth mapping, GU loss, EP, AAL, accumulation, technical premium  
+- Audit hash chain math  
+- RBAC enforcement  
 
 ---
 
-### 6. AccumulationAgent
+## Relation to old docs
 
-**Module:** `src/agent_orchestrator.py`
-
-**Inputs:**
-- `portfolio_df: pd.DataFrame`, `elt_df: pd.DataFrame`
-- `tail_dataframe: pd.DataFrame` (from TailRiskAgent)
-
-**Logic:**
-- Computes regional and property-type concentration breakdowns
-- Calculates HHI, top-1%/5%/10% TIV and loss concentration
-- Evaluates spatial co-hit metrics (events hitting multiple policies simultaneously)
-
-**Outputs:**
-- `regional_breakdown`, `top_1pct_tiv_share`, `top_1pct_tail_share`, `regional_hhi`
-- `accumulation_df`, `co_hit_metrics`
-
-**Permissions:** Read-only access to portfolio, ELT, and tail data
-
----
-
-### 7. PricingIntelligenceAgent
-
-**Module:** `src/agent_orchestrator.py`
-
-**Inputs:**
-- `tail_dataframe: pd.DataFrame` (from TailRiskAgent)
-- `coc_rate: float` (cost of capital rate, default 0.10)
-- `exp_rate: float` (expense ratio, default 0.10)
-
-**Logic:**
-- Computes technical premium = expected_loss + tail_charge + expense
-- Validates pricing waterfall reconciliation
-- Returns `FAILED` if pricing does not reconcile
-
-**Outputs:**
-- `total_technical_premium`, `total_expected_loss`, `total_tail_charge`, `total_expense`
-- `pricing_dataframe`, `pricing_reconciled`
-
-**Permissions:** Read-only access to tail allocation data
-
----
-
-### 8. ScenarioAgent
-
-**Module:** `src/agent_orchestrator.py`
-
-**Inputs:**
-- `ylt_df`, `elt_df`, `portfolio_df`, `tail_df`
-- `confidence: float`
-
-**Logic:**
-- Builds policy-annual-loss matrix (PAL)
-- Computes CRN (Common Random Numbers) marginal TVaR for each policy
-- Marginal TVaR = Portfolio TVaR − TVaR(Portfolio without policy)
-
-**Outputs:**
-- `marginal_results` (list of marginal impact records)
-- `pal_matrix` (policy-annual-loss matrix DataFrame)
-
-**Permissions:** Read-only access to loss tables, portfolio, and tail data
-
----
-
-### 9. RiskAppetiteAgent
-
-**Module:** `src/agent_orchestrator.py`
-
-**Inputs:**
-- `tail_records` (from TailRiskAgent's `tail_allocation.policy_records`)
-- `marginal_impacts` (from ScenarioAgent)
-- `co_hit_metrics` (from AccumulationAgent)
-
-**Logic:**
-- Applies deterministic governance rules via `RiskAppetiteRuleEngine`
-- Produces per-policy recommendation: `ACCEPT`, `REVIEW`, or `ESCALATE`
-- Generates risk flags and reason codes
-
-**Outputs:**
-- `total_evaluated`, `accept_count`, `review_count`, `escalate_count`
-- `recommendations` (list of `PolicyRecommendation` objects)
-
-**Permissions:** Read-only access to tail, marginal, and co-hit data
-
----
-
-### 10. DecisionSupportAgent
-
-**Module:** `src/agent_orchestrator.py`
-
-**Inputs:**
-- All upstream agent data dictionaries
-- `run_id`, `model_version`, `data_version`, `sim_years`
-
-**Logic:**
-- Iterates over all policy recommendations
-- Assembles a `DecisionEvidencePackage` for each policy containing:
-  - Key metrics (insured_value, AAL, tail_contribution, marginal_tvar, technical_premium, etc.)
-  - Multi-factor `DecisionConfidence` (4-quadrant model)
-  - Complete data quality, hazard, vulnerability, loss, accumulation, tail, pricing, and risk appetite summaries
-
-**Outputs:**
-- `evidence_packages: dict[str, DecisionEvidencePackage]`
-
-**Permissions:** Read-only aggregation of all upstream data
-
----
-
-### 11. GovernanceAgent
-
-**Module:** `src/agent_orchestrator.py`
-
-**Inputs:**
-- `trace: AgentWorkflowTrace`
-- `evidence_packages: dict[str, DecisionEvidencePackage]`
-
-**Logic:**
-- Validates that no upstream steps failed
-- Confirms that decision evidence packages were assembled
-- Certifies `ready_for_human: True` if all checks pass
-
-**Outputs:**
-- `ready_for_human: bool`, `policy_count: int`
-
-**Permissions:** Read-only access to workflow trace and evidence packages
-
----
-
-## Failure Handling
-
-| Failure Type | Behaviour |
-|-------------|-----------|
-| Critical agent returns `FAILED` | Orchestrator halts immediately, returns `REVIEW_REQUIRED` status |
-| Non-critical agent returns `FAILED` | Warning logged, execution continues |
-| Empty/null input data | Agent returns `FAILED` with descriptive message |
-| Reconciliation failure | Tail or pricing agent returns `FAILED`, halting pipeline |
-
-All failures produce structured `AgentResult` objects with:
-- `status: FAILED`
-- `message: str` describing the failure
-- `warnings: list[str]` with specific failure codes
-
-The `WorkflowExecutionResult` includes `trace.stopped_at_step` and `trace.failure_reason`
-when the pipeline is halted.
+The previous 11 Streamlit agents (ExposureIntelligence … Governance for Kenya Monte Carlo / TVaR UI) are **retired**. Do not revive Streamlit launch paths or Kenya radial demo as the product description.

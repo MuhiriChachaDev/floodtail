@@ -1,136 +1,99 @@
-# FLOODTAIL — Reinsurance Catastrophe & Portfolio Decision Intelligence Platform
+# FLOODTAIL — Nairobi Urban Flood CAT (Team A)
 
-> **AI Recommends. Human Decides. Auditable Always.**
-> 
-> *FLOODTAIL connects catastrophe risk modeling, portfolio accumulation, policy-level tail attribution, uncertainty, technical pricing, explainability, and human underwriting into one governed agentic workflow.*
+Reinsurance-oriented **Nairobi County pluvial flood** catastrophe prototype for the Team A Urban Flood Challenge.
 
+<<<<<<< HEAD
 **Release**: `FLOODTAIL Grade 1 Commercial Release v1.0.0`  
 **Test Suite**: 141 / 141 Passed (100% Deterministic Actuarial Green)  
 **Supported Runtimes**: Python 3.10 – 3.14 (Verified on Python 3.14.5)  
 **Primary Currency Base**: Kenya Shillings (KES) with multi-currency normalizer (USD, EUR, GBP)  
+=======
+**Pipeline:** Hazard → Vulnerability → Exposure → Financial engine → EP / return-period curve
+
+**AI posture (option 3):** trained predictive ML (hazard + vulnerability) **and** agentic AI (Ollama) around a **deterministic financial / EP core**. LLMs never invent loss, EP, AAL, or premium numbers.
+>>>>>>> c3d0325909f5ce2a26452beab68b6bc838e8167d
 
 ---
 
-## The Problem
-In reinsurance, **one flood does not create one isolated claim**. A single spatial flood inundation event turns dozens or hundreds of individually sound commercial properties into one devastating, correlated portfolio catastrophe.
+## What this is
 
-Traditional underwriting evaluates policies in isolation based on standalone location and asset value. As a result, reinsurers blindly accumulate correlated tail risk in the same geographic flood footprint, discovering the true accumulation only after a catastrophic 1-in-250 year event occurs.
+| In scope | Out of scope |
+|----------|----------------|
+| Nairobi County pluvial (surface-water) flood | Treaty structuring |
+| Synthetic 600-building exposure + proxy GeoTIFFs | Real client portfolios |
+| Trained hazard & vulnerability models | Multi-peril |
+| Agentic ingest / briefing / Q&A (Ollama) | Full hydrology |
+| Deterministic loss, EP, AAL, accumulation | Kenya-wide Monte Carlo catalogue |
+| kenyaRE-hard security (Keycloak, RBAC, audit) | Streamlit UI |
 
-## The Solution
-FLOODTAIL transforms raw exposure portfolios into an interactive, portfolio-aware decision process:
-1. **10,000-Year Monte Carlo Stochastic Engine**: Evaluates Poisson event arrivals and spatial flood footprints across Kenya.
-2. **Euler Policy Tail Allocation**: Exactly decomposes portfolio TVaR (99.6% / 1-in-250 year return period) down to individual policies ($\sum \text{Tail}_k = \text{Portfolio TVaR}$).
-3. **Common Random Numbers (CRN) Marginal TVaR**: Evaluates true portfolio contribution holding stochastic realizations constant.
-4. **Risk-Based Technical Pricing Waterfall**: Expected Loss + Cost of Capital Tail Charge + Expense Loading.
-5. **11-Agent Sequential Governance**: Deterministic, typed agents that validate data quality, compute losses, screen risk appetite, and assemble evidence packages.
-6. **Human-in-the-Loop & Cryptographic Audit**: Underwriters review evidence, explore mathematical "WHY" traces, and record decisions with mandatory reasons in an immutable SHA-256 hash-chained log.
+Streamlit has been **removed**. The product surface for the hackathon is the **FastAPI** backend; `apps/web` is an **empty Next.js scaffold** (no UI features yet).
 
 ---
 
-## Architecture Pipeline
+## Data (`Nairobi_Data/`)
+
+| Asset | Role |
+|-------|------|
+| `exposure_nairobi_with_hazard.csv` | 600 synthetic buildings + 5-tier hazard scores (recommended start) |
+| `exposure_nairobi_synthetic.csv` | Same locations without scores (raster / enrichment path) |
+| `nairobi_pluvial_proxy_{common,occasional,moderate,severe,extreme}.tif` | Proxy susceptibility rasters (0–1) |
+| `nairobi_hotspots_geocoded.csv` | 24 government-named hotspots (proxy QA ≈ 12/24) |
+
+All exposure rows are labelled `synthetic=True`. Proxy hazard is **not** gauge-validated flood depth.
+
+---
+
+## Stack
 
 ```
-EXPOSURE PORTFOLIO (CSV / Parquet)
-   │
-   ▼
-[Step 1] ExposureIntelligenceAgent ─── 11 Data Quality Rules & Geocoding Audit
-   │
-   ▼
-[Step 2] HazardAnalysisAgent ──────── Spatial Footprint Intersection (depth_m)
-   │
-   ▼
-[Step 3] VulnerabilityReviewAgent ──── Depth-Damage Curves & Construction Modifiers
-   │
-   ▼
-[Step 4] LossAnalysisAgent ─────────── ELT (80k+ records) & YLT (10k years) Loss Tables
-   │
-   ▼
-[Step 5] TailRiskAgent ─────────────── Portfolio AAL, VaR, TVaR 99.6% & Euler Allocation
-   │
-   ▼
-[Step 6] AccumulationAgent ─────────── Regional HHI, Spatial Co-Hits & Top-1% Share
-   │
-   ▼
-[Step 7] PricingIntelligenceAgent ──── Actuarial Technical Premium Waterfall
-   │
-   ▼
-[Step 8] ScenarioAgent ─────────────── CRN Counterfactual Marginal TVaR Impact
-   │
-   ▼
-[Step 9] RiskAppetiteAgent ─────────── Deterministic Underwriting Governance Rules
-   │
-   ▼
-[Step 10] DecisionSupportAgent ─────── Multi-Factor Confidence & Evidence Packages
-   │
-   ▼
-[Step 11] GovernanceAgent ──────────── Trace Validation & Audit Certification
-   │
-   ▼
-HUMAN UNDERWRITER (ACCEPT / MODIFY / REJECT with Mandatory Justification)
-   │
-   ▼
-CRYPTOGRAPHIC AUDIT LOG (Append-only SHA-256 Hash Chain in SQLite)
+apps/web     Next.js — empty scaffold only
+apps/api     FastAPI — JWT/Keycloak, RBAC, /v1/*
+packages/
+  agents/    Agentic AI (Ollama / LangGraph-style) + RAG/memory tools
+  ml/        HazardModel + VulnerabilityModel (train + infer)
+  cat_core/  Deterministic depth, loss, EP, accumulation, pricing
+  rag/       PDF/DOCX ingest → chunk → embed → pgvector retrieve
+  memory/    LangChain long-term memory (Postgres / in-memory)
+  security/  RBAC, prompt defence, AES, tenant, audit chain
+  xai/       SHAP, counterfactuals, validated narratives
+  llm/       Ollama client
 ```
+
+Infra: Docker Compose (`api` + `postgres` (pgvector) + `keycloak` + `ollama`). Deploy target: Render (API + Ollama).
+
+**RAG / memory:** `POST /v1/knowledge/documents` ingests PDF/DOCX/text; agents retrieve via tools. Long-term memory: `/v1/memory/*`. Both prefer Postgres+pgvector; fall back to in-memory when Postgres is down. LLMs still never invent EP/AAL/premium — those stay in `cat_core`.
 
 ---
 
-## 16-Page Enterprise Frontend
-
-Launch via Streamlit:
-```bash
-streamlit run app.py
-```
-
-| Page | Title | Key Interactive Capabilities |
-|:---:|:---|:---|
-| **01** | **Executive Overview** | Portfolio TIV, AAL, TVaR 99.6%, model status, executive KPI summary |
-| **02** | **Portfolio** | Searchable policy table, multi-parameter regional and property filters |
-| **03** | **Data Intelligence** | Quality score, IQR outlier detection, schema mapping history |
-| **04** | **Agent Control** | 11-agent sequential workflow, execution timings, failure injection |
-| **05** | **Flood Risk** | Hazard footprint explorer, mean/max depth inspection by policy |
-| **06** | **Accumulation** | Geographic concentration, Regional HHI (3,412), spatial co-hits |
-| **07** | **Catastrophe Analytics** | Interactive Plotly OEP vs AEP exceedance curves (log RP scale) |
-| **08** | **Tail Risk** | Portfolio VaR & TVaR metrics, policy tail contribution waterfall |
-| **09** | **Policy Intelligence** | **Killer A/B comparison** (Policy A vs B), 7-step mathematical WHY trace |
-| **10** | **Pricing** | Actuarial waterfall chart, live What-If margin slider |
-| **11** | **Scenario Lab** | Common Random Numbers (CRN) counterfactual marginal impacts |
-| **12** | **Risk Appetite** | Deterministic rule evaluation (`ACCEPT`, `REVIEW`, `ESCALATE`) |
-| **13** | **Decisions** | Decision evidence packages, 4-quadrant confidence, human capture |
-| **14** | **Audit** | SHA-256 decision ledger with one-click cryptographic verification |
-| **15** | **Methodology** | Scientific disclosure of formulas, loss engines, and assumptions |
-| **16** | **Future / 2090** | Demarcated vision: Earth observation, physics-informed AI, digital twins |
-
----
-
-## Quick Installation & Launch
+## How to run (API)
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/MuhiriChachaDev/floodtail.git
-cd floodtail
+# From repo root — after Phase 0 scaffold exists
+cp .env.example .env
+docker compose up --build
 
-# 2. Virtual environment setup
-python -m venv .venv
-
-# Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# Linux / macOS:
-source .venv/bin/activate
-
-# 3. Install requirements
-pip install -r requirements.txt
-
-# 4. Launch web application
-streamlit run app.py
-
-# 5. Or execute headless CLI bootstrap
-python app.py
+# Or local API (Postgres/Ollama optional; see DEPLOYMENT.md)
+uvicorn apps.api.main:app --reload --port 8000
 ```
+
+Health: `GET /v1/health`  
+OpenAPI: `http://localhost:8000/docs`
+
+Typical flow:
+
+1. `POST /v1/portfolios` — upload CSV or select built-in Nairobi set  
+2. `POST /v1/models/hazard/train` / `vulnerability/train` — register pinned models  
+3. `POST /v1/runs` — run pipeline  
+4. `GET /v1/runs/{id}/metrics` — AAL, EP points, tier losses (`data_labels` on every payload)  
+5. `GET /v1/runs/{id}/narrative` — validated Ollama briefing (numbers from allowlist only)
+
+There are **no Streamlit launch instructions**. Frontend UI is deferred.
 
 ---
 
-## Test Suite Verification
+## Docs map
 
+<<<<<<< HEAD
 Run all 141 tests:
 ```bash
 pytest -v
@@ -153,24 +116,32 @@ pytest -v
 | `tests/test_grounding.py` | 2 | Numeric Grounding Guard & AI hallucination prevention |
 | `tests/test_shadow_exposure.py` | 2 | Protection gap & regional density multiplier modeling |
 | `tests/test_treaty.py` | 3 | Reinsurance treaty layering (Cedant retention & Cat XOL layers) |
+=======
+| Doc | Purpose |
+|-----|---------|
+| [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Locked architecture, phases, API contract |
+| [ROADMAP.md](ROADMAP.md) | **Full E2E completion roadmap** (phases, checklists, 3-day plan) |
+| [ASSUMPTIONS.md](ASSUMPTIONS.md) | Assumptions register (status taxonomy) |
+| [METHODOLOGY.md](METHODOLOGY.md) | CAT + ML + agents + financial methodology |
+| [EXPLAINABILITY.md](EXPLAINABILITY.md) | SHAP, counterfactuals, narrative validation |
+| [MODEL_CARD.md](MODEL_CARD.md) | Nairobi prototype model card |
+| [AGENTS.md](AGENTS.md) | Agentic + ML + deterministic stage list |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Compose, Ollama, Keycloak, Render |
+| [RISK_GOVERNANCE.md](RISK_GOVERNANCE.md) | Human-in-loop, RBAC, audit |
+| [DEMO_SCRIPT.md](DEMO_SCRIPT.md) | Judge demo against API/metrics |
+| [FINAL_VALIDATION_REPORT.md](FINAL_VALIDATION_REPORT.md) | Superseded; pending re-validation |
+| [Team_A_Nairobi_Problem_Statement.docx](Team_A_Nairobi_Problem_Statement.docx) | Hackathon problem authority |
+>>>>>>> c3d0325909f5ce2a26452beab68b6bc838e8167d
 
 ---
 
-## Model Governance & Limitations
-- **Prototype Status**: FLOODTAIL is a demonstration decision platform using synthetic hazard fields and international benchmark depth-damage curves.
-- **Not Kenya Claims Calibrated**: Does not replace proprietary empirical claims loss calibration from reinsurers.
-- **Deterministic AI**: No generative LLM hallucination in financial calculations. Every number reconciles exactly to underlying event tables.
-- **Immutable Audit**: Decisions cannot be altered retroactively without breaking the cryptographic hash chain.
+## Hackathon deliverables
 
----
+1. Working E2E demo via API  
+2. EP / return-period curve  
+3. AI that materially changes output (trained ML and/or free-text exposure agent)  
+4. Assumptions labelled in payloads and docs  
+5. Results interface — **API contracts now; Next.js UI later**  
+6. Written note: sources / assumptions / AI role (this README + ASSUMPTIONS + METHODOLOGY + MODEL_CARD)
 
-## Repository Documentation
-- [`AGENTS.md`](file:///c:/Users/chach/floodtail/AGENTS.md): Full specification of all 11 specialized agents, inputs, outputs, and halt conditions.
-- [`EXPLAINABILITY.md`](file:///c:/Users/chach/floodtail/EXPLAINABILITY.md): The 7-step mathematical trace and decision explanation framework.
-- [`METHODOLOGY.md`](file:///c:/Users/chach/floodtail/METHODOLOGY.md): Scientific documentation of Poisson event rates, Euler allocation, and CRN marginal TVaR.
-- [`MODEL_CARD.md`](file:///c:/Users/chach/floodtail/MODEL_CARD.md): Formal model card covering intended use, inputs, outputs, and limitations.
-- [`ASSUMPTIONS.md`](file:///c:/Users/chach/floodtail/ASSUMPTIONS.md): Comprehensive register of supplied, verified, benchmark, and prototype parameters.
-- [`RISK_GOVERNANCE.md`](file:///c:/Users/chach/floodtail/RISK_GOVERNANCE.md): Underwriting guidelines, risk appetite thresholds, and compliance controls.
-- [`DEPLOYMENT.md`](file:///c:/Users/chach/floodtail/DEPLOYMENT.md): Deployment instructions, operational modes, and offline presentation guidelines.
-- [`DEMO_SCRIPT.md`](file:///c:/Users/chach/floodtail/DEMO_SCRIPT.md): 10-minute presentation guide, 5-minute live demo script, and Judge Q&A master defense.
-- [`FINAL_VALIDATION_REPORT.md`](file:///c:/Users/chach/floodtail/FINAL_VALIDATION_REPORT.md): Quantitative verification and numerical reconciliation results.
+**Honest labelling:** synthetic exposure, proxy rasters, prototype RP map, synthetic ML labels — never claimed as real Nairobi flood gauges or underwriting-grade portfolios.

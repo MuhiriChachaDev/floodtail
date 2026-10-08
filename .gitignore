@@ -3,37 +3,46 @@
 venv/
 env/
 
-# Python bytecode
+# Python
 __pycache__/
 *.pyc
 *.pyo
-
-# Pytest cache
 .pytest_cache/
+*.egg-info/
+dist/
+build/
+.ruff_cache/
+.mypy_cache/
 
 # Environment secrets
 .env
 .env.*
+!.env.example
 
-# Streamlit secrets (future)
-.streamlit/secrets.toml
-
-# IDE / editor
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS files
-Thumbs.db
 .DS_Store
+Thumbs.db
 
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Temporary artifacts
+# Logs / temp
 *.log
 data/processed/
 data/*.db
+*.db
+
+# ML artifacts (keep directory, ignore weights)
+models/**
+!models/.gitkeep
+
+# Node / Next.js
+apps/web/node_modules/
+apps/web/.next/
+apps/web/out/
+
+# Ollama / local caches
+.ollama/
+.ollama-home/
+.ollama-models/
