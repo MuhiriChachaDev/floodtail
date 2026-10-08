@@ -29,7 +29,9 @@ export default function LoginPage() {
     const ok = await login(email, password, role);
     setBusy(false);
     if (!ok) {
-      setError("Enter your work email and password to continue.");
+      setError(
+        "Sign-in failed. Check email/password, and that the API is reachable (NEXT_PUBLIC_API_URL).",
+      );
       return;
     }
     router.replace(next);

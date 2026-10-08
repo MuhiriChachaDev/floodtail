@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.routers import (
     audit,
+    auth,
     explanations,
     health,
     insight,
@@ -66,6 +67,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/v1", tags=["health"])
+app.include_router(auth.router, prefix="/v1", tags=["auth"])
 app.include_router(portfolios.router, prefix="/v1", tags=["portfolios"])
 app.include_router(runs.router, prefix="/v1", tags=["runs"])
 app.include_router(insight.router, prefix="/v1", tags=["insight"])

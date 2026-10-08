@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { fetchAccessToken, setAccessToken } from "@/lib/api";
 
 export type Role =
   | "Underwriter"
@@ -65,9 +66,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (email: string, _password: string, role: Role = "Underwriter") => {
+    async (email: string, password: string, role: Role = "Underwriter") => {
       const clean = email.trim();
-      if (!clean || !_password.trim()) return false;
+      if (!clean || !password.trim()) return false;
+      try {
+        const token = await fetchAccessToken({
+          email: clean,
+          password,
+          role,
+        });
+        setAccessToken(token.access_token);
+      } catch {
+        // Production Contabo requires JWT; without it API calls 401.
+        setAccessToken(null);
+        return false;
+      }
       const name =
         clean
           .split("@")[0]
@@ -84,7 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
-  const logout = useCallback(() => persist(null), [persist]);
+  const logout = useCallback(() => {
+    setAccessToken(null);
+    persist(null);
+  }, [persist]);
 
   const setRole = useCallback(
     (role: Role) => {

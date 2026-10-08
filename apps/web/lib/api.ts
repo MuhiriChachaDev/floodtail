@@ -1,6 +1,8 @@
 const DIRECT_API =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
 
+const TOKEN_KEY = "floodtail.api_token.v1";
+
 /**
  * Call the FastAPI backend directly (not via Next rewrite).
  * Long pipeline runs (~30–60s) hang up the Next.js proxy and surface as
@@ -11,14 +13,66 @@ function apiUrl(path: string): string {
   return `${DIRECT_API}${p}`;
 }
 
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAccessToken(token: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token);
+    else window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function protoHeaders(extra?: HeadersInit): HeadersInit {
-  return {
+  const headers: Record<string, string> = {
     Accept: "application/json",
     "X-Floodtail-Role": "underwriter",
     "X-Floodtail-Actor": "web-tester",
     "X-Floodtail-Tenant": "default",
-    ...extra,
   };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return { ...headers, ...extra };
+}
+
+export type TokenResponse = {
+  access_token: string;
+  token_type: string;
+  expires_in_minutes: number;
+  role: string;
+  actor: string;
+  tenant_id: string;
+};
+
+/** Exchange email/password for a JWT (required when API ENV != prototype). */
+export async function fetchAccessToken(opts: {
+  email: string;
+  password: string;
+  role?: string;
+}): Promise<TokenResponse> {
+  const res = await fetchSafe(apiUrl("/v1/auth/token"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: opts.email,
+      password: opts.password,
+      role: opts.role || "underwriter",
+    }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
 }
 
 export type HealthPayload = {
