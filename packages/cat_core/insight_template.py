@@ -59,6 +59,29 @@ def build_template_insight(metrics: MetricsPayload) -> InsightPackage:
         why.append(
             f"Top loss concentration: {top_class} at {top_share:.1f}% of reference-tier loss."
         )
+    if metrics.hazard_model_version or metrics.vuln_model_version:
+        delta = (metrics.baseline_delta or {}).get("aal_delta_kes")
+        ml_bits = []
+        if metrics.hazard_model_version:
+            ml_bits.append(f"hazard={metrics.hazard_model_version}")
+        if metrics.vuln_model_version:
+            ml_bits.append(f"vuln={metrics.vuln_model_version}")
+        delta_txt = (
+            f" AAL delta vs prior path: KES {float(delta):,.0f}."
+            if delta is not None
+            else ""
+        )
+        why.append(f"Predictive ML active ({', '.join(ml_bits)}).{delta_txt}")
+    xai = metrics.xai_summary or {}
+    haz_tops = (xai.get("hazard_global") or {}).get("top_features") or []
+    vuln_tops = (xai.get("vulnerability_global") or {}).get("top_features") or []
+    if haz_tops or vuln_tops:
+        parts = []
+        if haz_tops:
+            parts.append(f"hazard drivers {', '.join(haz_tops[:3])}")
+        if vuln_tops:
+            parts.append(f"vulnerability drivers {', '.join(vuln_tops[:3])}")
+        why.append(f"SHAP model explanation: {'; '.join(parts)}.")
 
     next_steps: list[str]
     if rec == Recommendation.ACCEPT:
@@ -75,8 +98,11 @@ def build_template_insight(metrics: MetricsPayload) -> InsightPackage:
         next_steps = [
             "Review housing-class concentration before accepting more writings.",
             "Compare set-aside floor vs current capital allocation.",
-            "Optional: train/pin ML models (Phase C) and re-run for delta.",
         ]
+        if not (metrics.hazard_model_version or metrics.vuln_model_version):
+            next_steps.append(
+                "Optional: pin ML models and re-run (use_ml) to inspect baseline_delta."
+            )
 
     allowlist: dict[str, Any] = {
         "insured_houses": metrics.n_insured_houses,

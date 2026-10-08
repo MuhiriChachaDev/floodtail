@@ -144,29 +144,34 @@ def test_store_portfolio_and_run_roundtrip() -> None:
     assert store.stats()["runs"] == 1
 
 
-def test_root_phase_c() -> None:
+def test_root_phase_f() -> None:
     r = client.get("/")
     assert r.status_code == 200
     body = r.json()
     assert body["service"] == "floodtail-api"
-    assert body["status"] == "phase-c"
-    assert body["phase"] == "C"
+    assert body["status"] == "phase-f"
+    assert body["phase"] == "F"
 
 
-def test_health_reports_phase_c() -> None:
+def test_health_reports_phase_f() -> None:
     r = client.get("/v1/health")
     assert r.status_code == 200
     body = r.json()
-    assert body["phase"] == "C-ml"
+    assert body["phase"] == "F-e2e-hardening"
     assert body["streamlit"] == "removed"
     assert "assumptions_version" in body
     assert body["return_periods"] == [5, 20, 50, 100, 250]
     assert "capital_policy" in body
     assert "store" in body
+    assert "ollama_up" in body
+    assert "registry" in body
 
 
-def test_remaining_stubs_still_501() -> None:
-    assert client.get("/v1/models").status_code == 200  # Phase C live
-    assert client.get("/v1/audit").status_code == 501
-    assert client.get("/v1/runs/demo/narrative").status_code == 501
-    assert client.get("/v1/runs/demo/explanations/global").status_code == 501
+def test_phase_f_routes_live() -> None:
+    assert client.get("/v1/models").status_code == 200
+    # underwriter lacks audit:read → 403; auditor gets 200
+    assert client.get("/v1/audit").status_code == 403
+    assert client.get("/v1/audit", headers={"X-Floodtail-Role": "auditor"}).status_code == 200
+    assert client.get("/v1/runs/demo/narrative").status_code == 404
+    # explanations: missing run → 404 (no longer 501)
+    assert client.get("/v1/runs/demo/explanations/global").status_code == 404

@@ -16,6 +16,8 @@ from packages.cat_core.ep import build_ep_curve, build_tier_losses, discrete_aal
 from packages.cat_core.exposure import default_data_labels
 from packages.cat_core.financial import add_loss_columns, reconcile_location_losses
 from packages.cat_core.insight_template import build_template_insight
+from packages.cat_core.pricing import technical_premium
+from packages.cat_core.reinsurance import build_financial_view
 from packages.cat_core.types import (
     AgentResult,
     DataLabels,
@@ -76,6 +78,9 @@ def run_cat(
     hazard_model_version: Optional[str] = None,
     vuln_model_version: Optional[str] = None,
     use_ml: bool = False,
+    treaty_attachment_kes: Optional[float] = None,
+    treaty_limit_kes: Optional[float] = None,
+    pricing_load_factor: Optional[float] = None,
 ) -> EngineResult:
     """
     Flexible CAT run:
@@ -231,15 +236,44 @@ def run_cat(
     if baseline_delta:
         baseline_delta["aal_delta_kes"] = round(aal - float(baseline_delta["baseline_aal_kes"]), 2)
 
+    total_tiv = float(work["tiv_kes"].sum())
     capital = compute_capital_band_from_profile(
-        tier_losses, aal, float(work["tiv_kes"].sum()), profile
+        tier_losses, aal, total_tiv, profile
     )
+    treaty_policy = profile.treaty.model_copy(deep=True)
+    if treaty_attachment_kes is not None:
+        treaty_policy.attachment_kes = float(treaty_attachment_kes)
+    if treaty_limit_kes is not None:
+        treaty_policy.limit_kes = float(treaty_limit_kes)
+    financial = build_financial_view(
+        tier_losses, treaty_policy, total_tiv, reference_tier="severe"
+    )
+    pricing = technical_premium(
+        aal,
+        profile.pricing,
+        load_factor=pricing_load_factor,
+        basis="gross_aal",
+    )
+    labels.notes = list(labels.notes) + [
+        f"Treaty {financial.treaty.name} ({financial.treaty.status}): "
+        f"attachment={financial.treaty.attachment_kes:,.0f} "
+        f"limit={financial.treaty.limit_kes:,.0f} {financial.treaty.currency}",
+        f"Pricing {pricing.status}: load×{pricing.load_factor} on gross AAL",
+    ]
     accum = build_accumulation_summary(work, profile.tier_names)
+    from packages.cat_core.depth_damage import build_depth_damage_summary
+
+    depth_damage = build_depth_damage_summary(work, profile)
     stages.append(
         AgentResult(
             stage="ep_capital",
             status=StageStatus.OK,
-            message="EP curve + capital band computed",
+            message="EP curve + XL financial view + capital band + technical premium",
+            data={
+                "aal_gross_kes": financial.aal_gross_kes,
+                "aal_net_kes": financial.aal_net_kes,
+                "technical_premium_kes": pricing.technical_premium_kes,
+            },
             critical=True,
         )
     )
@@ -250,16 +284,19 @@ def run_cat(
         assumptions_version=profile.assumptions_version,
         data_labels=labels,
         n_insured_houses=int(len(work)),
-        total_tiv_kes=float(work["tiv_kes"].sum()),
+        total_tiv_kes=total_tiv,
         location_label=location_label,
         tier_losses=tier_losses,
         ep_curve=ep_curve,
         aal_kes=round(aal, 2),
         capital_band=capital,
+        financial=financial,
+        pricing=pricing,
         hazard_model_version=hazard_ver,
         vuln_model_version=vuln_ver,
         baseline_delta=baseline_delta,
         accumulation_summary=accum,
+        depth_damage_summary=depth_damage,
         warnings=warnings,
     )
     insight = build_template_insight(metrics)

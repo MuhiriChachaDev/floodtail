@@ -11,15 +11,15 @@
 ## Current status (checkpoint)
 
 
-| Item                                       | Status                                                      |
-| ------------------------------------------ | ----------------------------------------------------------- |
-| Streamlit (`app.py`, `ui/`)                | **Removed**                                                 |
-| FastAPI scaffold (`apps/api`)              | **Done** — `/v1/health`                                     |
-| Next.js empty scaffold (`apps/web`)        | **Done** — placeholder only, no product UI                  |
-| Package skeletons (`packages/*`)           | **Done** — empty modules                                    |
-| Docs rewritten for Nairobi                 | **Done**                                                    |
-| Deterministic CAT / ML / agents / security | **Not started** (legacy `src/` still present for reference) |
-| Hackathon UI (EP curve, etc.)              | **Not started**                                             |
+| Item                                       | Status                                                                 |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| Streamlit (`app.py`, `ui/`)                | **Removed**                                                            |
+| FastAPI backend (`apps/api`)               | **Done through Phase F** — portfolios/runs/ML/insight/XAI/security/E2E |
+| Next.js empty scaffold (`apps/web`)        | **Done** — placeholder only; product UI is Phase 5 / out of backend F  |
+| Packages (`cat_core`, `ml`, `agents`, …)   | **Done** — grounded math + ML + LangGraph + security                   |
+| Docs rewritten for Nairobi                 | **Done** — ASSUMPTIONS capital band + insight-first DEMO_SCRIPT        |
+| Deterministic CAT / ML / agents / security | **Done** (legacy `src/` still present for reference until P6 archive)  |
+| Hackathon UI (EP curve, etc.)              | **Not started** (API/OpenAPI demo covers underwriter insight)          |
 
 
 ---

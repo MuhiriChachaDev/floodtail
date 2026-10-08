@@ -10,10 +10,13 @@ from apps.api.routers import (
     explanations,
     health,
     insight,
+    knowledge,
+    memory,
     models,
     portfolios,
     query,
     runs,
+    vulnerability,
 )
 from apps.api.settings import get_settings
 
@@ -21,17 +24,20 @@ _settings = get_settings()
 
 app = FastAPI(
     title="FLOODTAIL Flood CAT API",
-    version="0.1.0-phase-c",
+    version="0.1.0-phase-f",
     description=(
         "Location-flexible flood catastrophe backend for reinsurance underwriters. "
         "Agentic LangGraph orchestration + predictive ML + grounded EP/capital math. "
-        "Phase C: hazard/vuln ML pipeline (data→features→train→eval→tune→infer)."
+        "Phase F: E2E hardening — health/registry readiness, integration test, insight demo."
     ),
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -43,15 +49,18 @@ app.include_router(insight.router, prefix="/v1", tags=["insight"])
 app.include_router(models.router, prefix="/v1", tags=["models"])
 app.include_router(explanations.router, prefix="/v1", tags=["explanations"])
 app.include_router(query.router, prefix="/v1", tags=["query"])
+app.include_router(knowledge.router, prefix="/v1", tags=["knowledge"])
+app.include_router(memory.router, prefix="/v1", tags=["memory"])
 app.include_router(audit.router, prefix="/v1", tags=["audit"])
+app.include_router(vulnerability.router, prefix="/v1", tags=["vulnerability"])
 
 
 @app.get("/")
 def root() -> dict[str, str]:
     return {
         "service": "floodtail-api",
-        "status": "phase-c",
-        "phase": "C",
+        "status": "phase-f",
+        "phase": "F",
         "docs": "/docs",
         "health": "/v1/health",
         "assumptions_version": _settings.assumptions_version,

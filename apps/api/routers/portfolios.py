@@ -8,7 +8,14 @@ from typing import Optional
 import pandas as pd
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from apps.api.deps import ContextDep, SettingsDep, StoreDep
+from apps.api.deps import (
+    ContextDep,
+    SettingsDep,
+    StoreDep,
+    enforce_permission,
+    enforce_tenant,
+)
+from packages.agents.tools.audit_tools import append_audit
 from packages.cat_core.exceptions import ExposureDQError
 from packages.cat_core.exposure import (
     builtin_nairobi_path,
@@ -40,6 +47,7 @@ async def create_portfolio(
     - name: optional display name
     - file: CSV when source=upload
     """
+    enforce_permission(ctx, "portfolio:write")
     profile = settings.assumptions_profile()
     pid = store.create_portfolio_id()
 
@@ -96,6 +104,17 @@ async def create_portfolio(
         extra={"warnings": warnings},
     )
     store.save_portfolio(portfolio, frame)
+    append_audit(
+        "portfolio_ingest",
+        {
+            "portfolio_id": pid,
+            "source": src,
+            "n_rows": stats.n_insured_houses,
+            "actor": ctx.actor,
+            "role": ctx.role,
+            "tenant_id": ctx.tenant_id,
+        },
+    )
     return {
         "portfolio": portfolio.model_dump(mode="json"),
         "warnings": warnings,
@@ -103,14 +122,17 @@ async def create_portfolio(
 
 
 @router.get("/portfolios/{portfolio_id}")
-def get_portfolio(portfolio_id: str, store: StoreDep) -> dict:
+def get_portfolio(portfolio_id: str, store: StoreDep, ctx: ContextDep) -> dict:
+    enforce_permission(ctx, "portfolio:read")
     portfolio = store.get_portfolio(portfolio_id)
     if portfolio is None:
         raise HTTPException(status_code=404, detail="portfolio not found")
+    enforce_tenant(portfolio, ctx)
     return {"portfolio": portfolio.model_dump(mode="json")}
 
 
 @router.get("/portfolios")
 def list_portfolios(store: StoreDep, ctx: ContextDep) -> dict:
+    enforce_permission(ctx, "portfolio:read")
     items = store.list_portfolios(tenant_id=ctx.tenant_id)
     return {"portfolios": [p.model_dump(mode="json") for p in items]}

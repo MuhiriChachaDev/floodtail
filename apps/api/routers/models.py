@@ -1,4 +1,4 @@
-"""Model train / list / pin routes — Phase C."""
+"""Model train / list / pin routes — RBAC on train (Phase E)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from apps.api.deps import SettingsDep
+from apps.api.deps import ContextDep, SettingsDep, enforce_permission
+from packages.agents.tools.audit_tools import append_audit
 from packages.ml.pipeline import run_training_job
 from packages.ml.registry import ModelRegistry
 
@@ -29,13 +30,15 @@ def _registry(settings: SettingsDep) -> ModelRegistry:
 
 
 @router.get("/models")
-def list_models(settings: SettingsDep) -> dict:
+def list_models(settings: SettingsDep, ctx: ContextDep) -> dict:
+    enforce_permission(ctx, "model:read")
     reg = _registry(settings)
     return {"models": reg.list_models(), "models_dir": str(settings.models_dir)}
 
 
 @router.post("/models/hazard/train")
-def train_hazard(body: TrainRequest, settings: SettingsDep) -> dict:
+def train_hazard(body: TrainRequest, settings: SettingsDep, ctx: ContextDep) -> dict:
+    enforce_permission(ctx, "model:train")
     profile = settings.assumptions_profile()
     exposure = Path(body.exposure_path) if body.exposure_path else (
         settings.nairobi_data_dir / "exposure_nairobi_with_hazard.csv"
@@ -60,6 +63,17 @@ def train_hazard(body: TrainRequest, settings: SettingsDep) -> dict:
         )
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    append_audit(
+        "model_train",
+        {
+            "model_type": "hazard",
+            "version": entry.version,
+            "sha256": entry.sha256,
+            "actor": ctx.actor,
+            "role": ctx.role,
+            "tenant_id": ctx.tenant_id,
+        },
+    )
     return {
         "model_type": entry.model_type,
         "version": entry.version,
@@ -71,7 +85,8 @@ def train_hazard(body: TrainRequest, settings: SettingsDep) -> dict:
 
 
 @router.post("/models/vulnerability/train")
-def train_vulnerability(body: TrainRequest, settings: SettingsDep) -> dict:
+def train_vulnerability(body: TrainRequest, settings: SettingsDep, ctx: ContextDep) -> dict:
+    enforce_permission(ctx, "model:train")
     profile = settings.assumptions_profile()
     try:
         entry = run_training_job(
@@ -84,6 +99,17 @@ def train_vulnerability(body: TrainRequest, settings: SettingsDep) -> dict:
         )
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    append_audit(
+        "model_train",
+        {
+            "model_type": "vulnerability",
+            "version": entry.version,
+            "sha256": entry.sha256,
+            "actor": ctx.actor,
+            "role": ctx.role,
+            "tenant_id": ctx.tenant_id,
+        },
+    )
     return {
         "model_type": entry.model_type,
         "version": entry.version,

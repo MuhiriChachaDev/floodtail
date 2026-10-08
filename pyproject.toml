@@ -19,9 +19,16 @@ dependencies = [
 geo = ["rasterio>=1.3", "shapely>=2.0"]
 ml = ["scikit-learn>=1.4", "xgboost>=2.0", "shap>=0.45", "joblib>=1.4"]
 llm = ["langchain-ollama>=0.1", "langchain-core>=0.2", "langgraph>=0.1"]
+rag = [
+    "pypdf>=4.2",
+    "python-docx>=1.1",
+    "olefile>=0.47",
+    "psycopg[binary]>=3.1",
+    "pgvector>=0.3",
+]
 security = ["python-jose[cryptography]>=3.3", "cryptography>=42", "passlib[bcrypt]>=1.7"]
 dev = ["pytest>=8.2", "pytest-asyncio>=0.23", "ruff>=0.4", "httpx>=0.27"]
-all = ["floodtail[geo,ml,llm,security,dev]"]
+all = ["floodtail[geo,ml,llm,rag,security,dev]"]
 
 [build-system]
 requires = ["setuptools>=68"]

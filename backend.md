@@ -411,8 +411,8 @@ Wire into runs:
 
 ### D1. Ollama client
 
-- [ ] `packages/llm/ollama_client.py`: chat, temp=0, timeout, health
-- [ ] Degrade flag when Ollama down
+- [x] `packages/llm/ollama_client.py`: chat, temp=0, timeout, health
+- [x] Degrade flag when Ollama down
 
 ### D2. LangChain tools
 
@@ -431,9 +431,9 @@ Wrap existing Python (no duplicated math):
 
 ### D3. Graph state + nodes
 
-- [ ] `state.py`: portfolio_id, frames, warnings, metrics, allowlist, insight, status
-- [ ] Nodes matching `flowchart.md` stages 0–9
-- [ ] Critical halt policy in graph edges
+- [x] `state.py`: portfolio_id, frames, warnings, metrics, allowlist, insight, status
+- [x] Nodes matching `flowchart.md` stages 0–9
+- [x] Critical halt policy in graph edges
 
 ### D4. Insight Agent (product output)
 
@@ -458,21 +458,21 @@ numbers_source: "tool_allowlist"
 narrative: str   # optional prose
 ```
 
-- [ ] `output_validation`: every money token ∈ allowlist
-- [ ] Ollama down → template insight (same numbers)
+- [x] `output_validation`: every money token ∈ allowlist
+- [x] Ollama down → template insight (same numbers)
 
 ### D5. API
 
-- [ ] `GET /v1/runs/{id}/insight`
-- [ ] `GET /v1/runs/{id}/narrative`
-- [ ] `POST /v1/runs/{id}/query` (injection defence)
-- [ ] `POST /v1/runs/{id}/approve`
+- [x] `GET /v1/runs/{id}/insight`
+- [x] `GET /v1/runs/{id}/narrative`
+- [x] `POST /v1/runs/{id}/query` (injection defence)
+- [x] `POST /v1/runs/{id}/approve`
 
 ### D6. Tests
 
-- [ ] Free-text → schema fail rejects bad rows
-- [ ] Insight validation rejects invented KES
-- [ ] Graph completes with Ollama mocked down (template path)
+- [x] Free-text → schema fail rejects bad rows
+- [x] Insight validation rejects invented KES
+- [x] Graph completes with Ollama mocked down (template path)
 
 **Exit D:** Full agent graph run; underwriter insight endpoint demoable.
 
@@ -482,24 +482,24 @@ narrative: str   # optional prose
 
 ### E1. XAI
 
-- [ ] SHAP local/global for tree models
-- [ ] Deterministic counterfactuals (feature ± → Δ pred → Δ loss)
-- [ ] `GET /v1/runs/{id}/explanations/*`
-- [ ] Refresh `MODEL_CARD` fields from registry metrics
+- [x] SHAP local/global for tree models
+- [x] Deterministic counterfactuals (feature ± → Δ pred → Δ loss)
+- [x] `GET /v1/runs/{id}/explanations/*`
+- [x] Refresh `MODEL_CARD` fields from registry metrics
 
 ### E2. Security
 
-- [ ] RBAC on train / approve / audit routes
-- [ ] JWT middleware (Keycloak in compose; stub roles in local prototype mode)
-- [ ] Prompt defence on query/freetext
-- [ ] AES-GCM + `hash_token` for PII
-- [ ] Tenant check on portfolio/run ids
-- [ ] SHA-256 audit chain on ingest/train/run/query/decide
-- [ ] `GET /v1/audit` + `chain_valid`
+- [x] RBAC on train / approve / audit routes
+- [x] JWT middleware (Keycloak in compose; stub roles in local prototype mode)
+- [x] Prompt defence on query/freetext
+- [x] AES-GCM + `hash_token` for PII
+- [x] Tenant check on portfolio/run ids
+- [x] SHA-256 audit chain on ingest/train/run/query/decide
+- [x] `GET /v1/audit` + `chain_valid`
 
 ### E3. Tests
 
-- [ ] `test_prompt_injection.py`, `test_rbac.py`, `test_audit_chain.py`, `test_output_validation.py`
+- [x] `test_prompt_injection.py`, `test_rbac.py`, `test_audit_chain.py`, `test_output_validation.py`
 
 **Exit E:** Security suite green; explanations return for sample property.
 
@@ -507,11 +507,11 @@ narrative: str   # optional prose
 
 # Phase F — E2E hardening
 
-- [ ] One integration test: upload → train → run → metrics → insight → approve → audit verify
-- [ ] Health reports: nairobi/data path, ollama up/down, registry present
-- [ ] Sync `ROADMAP.md` / `ASSUMPTIONS.md` if capital-band defaults change
-- [ ] Update `DEMO_SCRIPT.md` for insight-first walkthrough
-- [ ] Do **not** build Next.js product UI in this backend track
+- [x] One integration test: upload → train → run → metrics → insight → approve → audit verify (`tests/test_phase_f_e2e.py`)
+- [x] Health reports: nairobi/data path, ollama up/down, registry present (`/v1/health` → `registry`)
+- [x] Sync `ASSUMPTIONS.md` capital-band defaults (floor RP100 / ceiling RP250 / TIV fraction)
+- [x] Update `DEMO_SCRIPT.md` for insight-first walkthrough
+- [x] Do **not** build Next.js product UI in this backend track
 
 **Exit F:** `pytest` green; demo script runnable against API only.
 

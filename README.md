@@ -42,15 +42,19 @@ All exposure rows are labelled `synthetic=True`. Proxy hazard is **not** gauge-v
 apps/web     Next.js — empty scaffold only
 apps/api     FastAPI — JWT/Keycloak, RBAC, /v1/*
 packages/
-  agents/    Agentic AI (Ollama / LangGraph-style)
+  agents/    Agentic AI (Ollama / LangGraph-style) + RAG/memory tools
   ml/        HazardModel + VulnerabilityModel (train + infer)
   cat_core/  Deterministic depth, loss, EP, accumulation, pricing
+  rag/       PDF/DOCX ingest → chunk → embed → pgvector retrieve
+  memory/    LangChain long-term memory (Postgres / in-memory)
   security/  RBAC, prompt defence, AES, tenant, audit chain
   xai/       SHAP, counterfactuals, validated narratives
   llm/       Ollama client
 ```
 
-Infra: Docker Compose (`api` + `postgres` + `keycloak` + `ollama`). Deploy target: Render (API + Ollama).
+Infra: Docker Compose (`api` + `postgres` (pgvector) + `keycloak` + `ollama`). Deploy target: Render (API + Ollama).
+
+**RAG / memory:** `POST /v1/knowledge/documents` ingests PDF/DOCX/text; agents retrieve via tools. Long-term memory: `/v1/memory/*`. Both prefer Postgres+pgvector; fall back to in-memory when Postgres is down. LLMs still never invent EP/AAL/premium — those stay in `cat_core`.
 
 ---
 

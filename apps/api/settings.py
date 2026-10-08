@@ -8,7 +8,13 @@ from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from packages.cat_core.assumptions import AssumptionsProfile, CapitalPolicy
+from packages.cat_core.assumptions import (
+    AssumptionsProfile,
+    CapitalPolicy,
+    PricingPolicy,
+    TreatyPolicy,
+)
+from packages.rag.config import RagSettings
 
 _ROOT = Path(__file__).resolve().parents[2]
 
@@ -44,11 +50,21 @@ class Settings(BaseSettings):
     capital_ceiling_tiv_fraction: float = 1.0
     capital_currency: str = "KES"
 
+    # Prototype single-layer XL (fractions of TIV; absolute overrides via RunConfig)
+    treaty_attachment_tiv_fraction: float = 0.05
+    treaty_limit_tiv_fraction: float = 0.15
+    pricing_default_load_factor: float = 1.25
+
     # Ollama
     ollama_host: str = "http://localhost:11434"
     ollama_primary_model: str = "qwen2.5:3b-instruct"
 
-    # Optional OSM enrichment (Overpass) — disabled by default for offline flexibility
+    # Predictive ML is a required product stage (hazard + vulnerability).
+    # Prior-only is allowed only when allow_prior_only=true (tests / offline debug).
+    require_ml: bool = True
+    allow_prior_only: bool = False
+
+    # Optional OSM enrichment (Overpass) — off by default; never required for a run
     overpass_url: str = "https://overpass-api.de/api/interpreter"
     use_osm_default: bool = False
     hotspots_filename: str = "nairobi_hotspots_geocoded.csv"
@@ -65,12 +81,20 @@ class Settings(BaseSettings):
     # Security
     aes_key_base64: str = "Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFy"
 
-    # Postgres (compose; store is in-memory in Phase A/B)
+    # Postgres (compose; portfolio/run store is still in-memory Phase A/B).
+    # RAG + long-term agent memory use Postgres + pgvector when reachable.
     postgres_user: str = "floodtail"
     postgres_password: str = "floodtail_dev_change_me"
     postgres_db: str = "floodtail"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+
+    # RAG / embeddings
+    ollama_embedding_model: str = "nomic-embed-text"
+    rag_embedding_dim: int = 768
+    rag_chunk_size: int = 800
+    rag_chunk_overlap: int = 120
+    rag_force_memory: bool = False
 
     def parsed_return_periods(self) -> list[int]:
         parts = [p.strip() for p in self.return_periods.split(",") if p.strip()]
@@ -87,6 +111,30 @@ class Settings(BaseSettings):
                 ceiling_tiv_fraction=self.capital_ceiling_tiv_fraction,
                 currency=self.capital_currency,
             ),
+            treaty=TreatyPolicy(
+                attachment_tiv_fraction=self.treaty_attachment_tiv_fraction,
+                limit_tiv_fraction=self.treaty_limit_tiv_fraction,
+                currency=self.capital_currency,
+            ),
+            pricing=PricingPolicy(
+                default_load_factor=self.pricing_default_load_factor,
+                currency=self.capital_currency,
+            ),
+        )
+
+    def rag_settings(self) -> RagSettings:
+        return RagSettings(
+            postgres_user=self.postgres_user,
+            postgres_password=self.postgres_password,
+            postgres_db=self.postgres_db,
+            postgres_host=self.postgres_host,
+            postgres_port=self.postgres_port,
+            embedding_dim=self.rag_embedding_dim,
+            embedding_model=self.ollama_embedding_model,
+            ollama_host=self.ollama_host,
+            chunk_size=self.rag_chunk_size,
+            chunk_overlap=self.rag_chunk_overlap,
+            force_memory=self.rag_force_memory,
         )
 
 

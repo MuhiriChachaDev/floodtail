@@ -44,3 +44,5 @@ apps/web/out/
 
 # Ollama / local caches
 .ollama/
+.ollama-home/
+.ollama-models/

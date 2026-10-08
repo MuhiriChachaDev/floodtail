@@ -74,12 +74,16 @@ class RunConfig(BaseModel):
     portfolio_id: str
     hazard_model_version: Optional[str] = None
     vuln_model_version: Optional[str] = None
-    use_ml: bool = False
+    use_ml: bool = True  # product default: predictive ML is a required stage
     enable_freetext: bool = False
     freetext: Optional[str] = None
     require_human_gate_1: bool = False
     assumptions_version: Optional[str] = None
     d_max_m: Optional[float] = None
+    # Optional treaty overrides (absolute KES); None → profile defaults / TIV fractions
+    treaty_attachment_kes: Optional[float] = None
+    treaty_limit_kes: Optional[float] = None
+    pricing_load_factor: Optional[float] = None
     tenant_id: str = "default"
     actor: str = "anonymous"
 
@@ -112,6 +116,56 @@ class CapitalBand(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class TreatyTerms(BaseModel):
+    """Resolved single-layer XL terms used for this run."""
+
+    name: str = "prototype_xl_v1"
+    status: str = "PROTOTYPE"
+    currency: str = "KES"
+    attachment_kes: float
+    limit_kes: float
+    retention_kes: float
+    notes: list[str] = Field(default_factory=list)
+
+
+class LayeredLoss(BaseModel):
+    """Gross / retained / recovery / net for one severity tier."""
+
+    tier: str
+    return_period: int
+    aep: float
+    gross_kes: float
+    retained_kes: float
+    recovery_kes: float
+    net_kes: float
+
+
+class FinancialView(BaseModel):
+    """Insured (gross) vs reinsured (net) view from the financial engine."""
+
+    treaty: TreatyTerms
+    layered_by_tier: list[LayeredLoss] = Field(default_factory=list)
+    ep_curve_gross: list[EPPoint] = Field(default_factory=list)
+    ep_curve_net: list[EPPoint] = Field(default_factory=list)
+    aal_gross_kes: float = 0.0
+    aal_net_kes: float = 0.0
+    aal_ceded_kes: float = 0.0
+    reference_tier: str = "severe"
+
+
+class PricingIndication(BaseModel):
+    """Technical premium indication — not a binding quote."""
+
+    aal_basis_kes: float
+    load_factor: float
+    technical_premium_kes: float
+    currency: str = "KES"
+    formula: str = "technical_premium = AAL × load_factor"
+    basis: str = "gross_aal"
+    status: str = "PROTOTYPE"
+    notes: list[str] = Field(default_factory=list)
+
+
 class MetricsPayload(BaseModel):
     """Grounded run metrics — sole source of money numbers for agents."""
 
@@ -126,10 +180,23 @@ class MetricsPayload(BaseModel):
     ep_curve: list[EPPoint] = Field(default_factory=list)
     aal_kes: float = 0.0
     capital_band: Optional[CapitalBand] = None
+    financial: Optional[FinancialView] = None
+    pricing: Optional[PricingIndication] = None
     hazard_model_version: Optional[str] = None
     vuln_model_version: Optional[str] = None
     baseline_delta: dict[str, Any] = Field(default_factory=dict)
     accumulation_summary: dict[str, Any] = Field(default_factory=dict)
+    depth_damage_summary: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Depth–damage curve data: prior curves + empirical mean depth/damage "
+            "by flood tier from the run frame."
+        ),
+    )
+    xai_summary: dict[str, Any] = Field(
+        default_factory=dict,
+        description="In-graph SHAP drivers (non-critical; empty if XAI skipped/failed).",
+    )
     warnings: list[str] = Field(default_factory=list)
 
 
@@ -162,6 +229,16 @@ class AgentResult(BaseModel):
     critical: bool = False
 
 
+class DecisionRecord(BaseModel):
+    """Human gate decision (approve endpoint)."""
+
+    decision: Recommendation
+    reason: str
+    actor: str = "anonymous"
+    gate: Literal["gate1", "gate2"] = "gate2"
+    decided_at: datetime = Field(default_factory=utc_now)
+
+
 class RunRecord(BaseModel):
     """Persisted run state."""
 
@@ -181,4 +258,8 @@ class RunRecord(BaseModel):
     stages: list[AgentResult] = Field(default_factory=list)
     metrics: Optional[MetricsPayload] = None
     insight: Optional[InsightPackage] = None
+    narrative: Optional[str] = None
+    allowlist: dict[str, Any] = Field(default_factory=dict)
+    decision: Optional[DecisionRecord] = None
+    ollama_degraded: bool = False
     error: Optional[str] = None

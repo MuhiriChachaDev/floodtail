@@ -89,6 +89,20 @@ Do not upgrade status without evidence in this register.
 | F3 | AAL ≈ Σ (AEP_tier × tier_portfolio_loss) over discrete RPs | PROTOTYPE | Documented discrete approximation |
 | F4 | LLM never emits loss / EP / AAL / premium | SUPPLIED | Hard boundary + output allowlist |
 | F5 | Optional light MC only for uncertainty bands | PROTOTYPE | Not product core |
+| F6 | Single-layer XL: `recovery = min(limit, max(0, gross − attachment))`; `net = gross − recovery` | PROTOTYPE | Default attachment 5% TIV, limit 15% TIV; not a multi-layer programme |
+| F7 | Technical premium = gross AAL × load factor (default 1.25) | PROTOTYPE | Indication only; human approval required |
+
+### Capital / set-aside band (PROTOTYPE)
+
+Config keys: `capital_floor_rp`, `capital_ceiling_rp`, `capital_ceiling_tiv_fraction` (see `packages/cat_core/assumptions.py` / `.env`).
+
+| ID | Assumption | Status | Notes |
+|----|------------|--------|-------|
+| C1 | Floor = portfolio loss at RP **100** (severe tier) | PROTOTYPE | Avoid under-budgeting; `floor_return_period=100` |
+| C2 | Central = discrete AAL | PROTOTYPE | May sit below floor — expected for discrete EP |
+| C3 | Ceiling = min(loss at RP **250**, `ceiling_tiv_fraction × TIV`) | PROTOTYPE | Default fraction `1.0`; currency `KES` |
+| C4 | Guarantee `floor_kes ≤ ceiling_kes` (clamp if needed) | SUPPLIED | Documented in capital tool notes |
+| C5 | Insight `set_aside` cites this band only — never LLM-invented KES | SUPPLIED | Allowlist from `cat_core` |
 
 ---
 
