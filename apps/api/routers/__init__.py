@@ -2,6 +2,7 @@
 
 from apps.api.routers import (
     audit,
+    auth,
     explanations,
     health,
     insight,
@@ -16,6 +17,7 @@ from apps.api.routers import (
 
 __all__ = [
     "audit",
+    "auth",
     "explanations",
     "health",
     "insight",
