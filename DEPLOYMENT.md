@@ -60,7 +60,7 @@ Execute the entire regression and validation suite:
 ```bash
 pytest -v
 ```
-All 128 tests across foundation, data layer, catastrophe engine, risk analytics, agent workflow, and frontend smoke will execute and pass.
+All 141 tests across foundation, data layer, catastrophe engine, risk analytics, agent workflow, uncertainty, skeptic red-teaming, grounding, shadow exposure, treaty XOL, and frontend smoke will execute and pass.
 
 ---
 

@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Kenya Re Flood Risk Intelligence Platform — Enterprise reinsurance analytics and catastrophe decision system." />
+  <title>Kenya Re — Flood Risk Intelligence Platform</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =====================================================================
+       DESIGN TOKENS
+    ===================================================================== */
+    :root {
+      --bg-base:          #03070f;
+      --bg-surface:       #070d1c;
+      --bg-card:          rgba(8, 16, 34, 0.82);
+      --border-default:   rgba(0, 229, 255, 0.18);
+      --border-subtle:    rgba(255, 255, 255, 0.06);
+      --border-input:     rgba(255, 255, 255, 0.1);
+      --border-input-focus: rgba(0, 229, 255, 0.65);
+
+      --cyan:             #00E5FF;
+      --cyan-dim:         #00b4ca;
+      --cyan-glow:        rgba(0, 229, 255, 0.35);
+      --cyan-subtle:      rgba(0, 229, 255, 0.08);
+
+      --red-kr:           #E52320;
+      --blue-kr:          #0066CC;
+
+      --text-primary:     #FFFFFF;
+      --text-secondary:   #94A3B8;
+      --text-muted:       #64748B;
+      --text-disabled:    #374151;
+
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --radius-card:      18px;
+      --radius-btn:       10px;
+      --radius-input:     9px;
+      --transition:       all 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* =====================================================================
+       RESET & BASE
+    ===================================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      font-size: 15px;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* =====================================================================
+       LAYOUT SHELL
+    ===================================================================== */
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 110% 80% at 18% 42%, #0b1e3d 0%, transparent 65%),
+        radial-gradient(ellipse 80% 80% at 75% 80%, #03101f 0%, transparent 70%),
+        linear-gradient(180deg, #030912 0%, #040c1c 100%);
+    }
+
+    /* =====================================================================
+       BACKGROUND — SUBTLE GRID OVERLAY
+    ===================================================================== */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(0,229,255,0.028) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,229,255,0.028) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* =====================================================================
+       KENYA VECTOR MAP — ABSOLUTE OVERLAY
+    ===================================================================== */
+    .map-overlay {
+      position: absolute;
+      left: 24%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 640px;
+      height: 640px;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.9;
+    }
+
+    /* =====================================================================
+       MAIN CONTENT GRID
+    ===================================================================== */
+    .content-wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      padding: 28px 56px 0 56px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 32px;
+      align-items: center;
+      flex: 1;
+      padding-top: 12px;
+      padding-bottom: 24px;
+      min-height: 0;
+    }
+
+    /* =====================================================================
+       LEFT COLUMN — HERO
+    ===================================================================== */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 8px;
+    }
+
+    /* Brand Header */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .brand-logo svg {
+      display: block;
+      width: 48px;
+      height: 48px;
+    }
+
+    .brand-text-group {
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      color: #fff;
+    }
+
+    .brand-name .red { color: var(--red-kr); }
+
+    .brand-tagline {
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 2.8px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    /* Platform badge */
+    .platform-badge {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      letter-spacing: 0.2px;
+    }
+
+    /* Main headline */
+    .headline {
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1.12;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+    }
+
+    .headline .line-white { color: #fff; display: block; }
+    .headline .line-cyan  {
+      color: var(--cyan);
+      display: block;
+      text-shadow: 0 0 28px rgba(0,229,255,0.38), 0 0 60px rgba(0,229,255,0.15);
+    }
+
+    /* Sub-tagline */
+    .sub-tagline {
+      font-size: 14.5px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    /* Feature list */
+    .features {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-bottom: 36px;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .feature-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 1.5px solid var(--cyan);
+      background: var(--cyan-subtle);
+      box-shadow: 0 0 14px rgba(0,229,255,0.22), inset 0 1px 0 rgba(0,229,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .feature-icon svg {
+      width: 21px;
+      height: 21px;
+      stroke: var(--cyan);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .feature-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .feature-desc {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    /* Brand stripes */
+    .stripes {
+      display: flex;
+      gap: 9px;
+      margin-top: 4px;
+    }
+
+    .stripe {
+      width: 15px;
+      height: 62px;
+      transform: skewX(-22deg);
+      border-radius: 3px;
+    }
+
+    .stripe-white { background: #FFFFFF; }
+    .stripe-red   { background: var(--red-kr); }
+    .stripe-blue  { background: var(--blue-kr); }
+
+    /* =====================================================================
+       RIGHT COLUMN — AUTH CARD
+    ===================================================================== */
+    .card-col {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 468px;
+      background: var(--bg-card);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-card);
+      padding: 40px 36px 32px 36px;
+      box-shadow:
+        0 24px 60px rgba(0,0,0,0.65),
+        0 0 0 1px rgba(0,229,255,0.07),
+        0 0 40px rgba(0,229,255,0.07);
+    }
+
+    /* Card header */
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .shield-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 13px;
+      border: 1.5px solid var(--cyan);
+      background: rgba(0,229,255,0.1);
+      box-shadow: 0 0 20px rgba(0,229,255,0.28), inset 0 1px 0 rgba(0,229,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .shield-icon svg {
+      width: 26px;
+      height: 26px;
+      stroke: var(--cyan);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .card-title { font-size: 23px; font-weight: 800; color: #fff; margin-bottom: 5px; }
+    .card-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+
+    /* Form */
+    .form-group { margin-bottom: 18px; }
+
+    .form-label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #D1D5DB;
+      margin-bottom: 8px;
+      letter-spacing: 0.15px;
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(10, 20, 42, 0.9);
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-input);
+      padding: 0 14px;
+      height: 48px;
+      transition: var(--transition);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--border-input-focus);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.12);
+    }
+
+    .input-wrapper .icon {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .input-wrapper .icon svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .input-wrapper input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 14px;
+      font-family: var(--font);
+    }
+
+    .input-wrapper input::placeholder { color: var(--text-disabled); }
+
+    .input-toggle {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 0;
+      transition: var(--transition);
+    }
+
+    .input-toggle:hover { color: var(--text-secondary); }
+    .input-toggle svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Remember / Forgot row */
+    .aux-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .checkbox-box {
+      width: 17px;
+      height: 17px;
+      border-radius: 4px;
+      background: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+
+    .checkbox-box svg { width: 11px; height: 11px; stroke: #040812; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+    input[type="checkbox"] { display: none; }
+    input[type="checkbox"]:not(:checked) + .checkbox-label .checkbox-box {
+      background: transparent;
+      border: 1.5px solid var(--border-input);
+    }
+    input[type="checkbox"]:not(:checked) + .checkbox-label .checkbox-box svg { display: none; }
+
+    .forgot-link {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--cyan);
+      transition: var(--transition);
+    }
+
+    .forgot-link:hover { color: #67e8f9; text-decoration: underline; }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: var(--cyan);
+      color: #030912;
+      font-size: 14.5px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      padding: 14px 24px;
+      border-radius: var(--radius-btn);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 24px rgba(0,229,255,0.38), 0 4px 16px rgba(0,229,255,0.18);
+      transition: var(--transition);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+      transform: translateX(-100%);
+      transition: transform 0.5s ease;
+    }
+
+    .btn-primary:hover { background: #1af2ff; box-shadow: 0 0 32px rgba(0,229,255,0.58), 0 6px 22px rgba(0,229,255,0.25); transform: translateY(-1px); }
+    .btn-primary:hover::before { transform: translateX(100%); }
+    .btn-primary:active { transform: translateY(0); box-shadow: 0 0 16px rgba(0,229,255,0.3); }
+
+    .btn-primary svg { width: 18px; height: 18px; stroke: #030912; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 0 0 20px 0;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    /* MFA button */
+    .btn-mfa {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-btn);
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 13px 16px;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-bottom: 26px;
+    }
+
+    .btn-mfa:hover {
+      background: rgba(0,229,255,0.07);
+      border-color: rgba(0,229,255,0.45);
+      box-shadow: 0 0 18px rgba(0,229,255,0.14);
+    }
+
+    .btn-mfa .mfa-left { display: flex; align-items: center; gap: 10px; }
+
+    .btn-mfa svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Trust footer */
+    .trust-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .trust-row svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .trust-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+
+    /* =====================================================================
+       FOOTER
+    ===================================================================== */
+    .site-footer {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 56px 18px 56px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .footer-links { display: flex; gap: 6px; align-items: center; }
+    .footer-links a { color: var(--text-muted); transition: var(--transition); }
+    .footer-links a:hover { color: var(--cyan); }
+    .footer-sep { color: var(--text-disabled); }
+
+    /* =====================================================================
+       TOAST NOTIFICATION
+    ===================================================================== */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      background: rgba(8,24,52,0.95);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13.5px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,229,255,0.1);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+      max-width: 340px;
+      backdrop-filter: blur(16px);
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .toast-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .toast-icon.success { background: rgba(16,185,129,0.15); }
+    .toast-icon.error   { background: rgba(239,68,68,0.15); }
+    .toast-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .toast-icon.success svg { stroke: #10B981; }
+    .toast-icon.error svg   { stroke: #EF4444; }
+
+    .toast-msg { color: #E2E8F0; }
+
+    /* =====================================================================
+       LOADING SPINNER (post-sign-in)
+    ===================================================================== */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: rgba(3,7,15,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    .loading-overlay.active { opacity: 1; pointer-events: all; }
+
+    .spinner {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 3px solid rgba(0,229,255,0.15);
+      border-top-color: var(--cyan);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+    }
+
+    .loading-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: -0.2px;
+    }
+
+    /* =====================================================================
+       MAP PULSE ANIMATION
+    ===================================================================== */
+    .pulse-ring {
+      animation: pulse 2.4s ease-out infinite;
+      transform-origin: center;
+    }
+
+    .pulse-ring-2 { animation-delay: 0.8s; }
+    .pulse-ring-3 { animation-delay: 1.6s; }
+
+    @keyframes pulse {
+      0%   { opacity: 0.7; transform: scale(1); }
+      70%  { opacity: 0; transform: scale(1.5); }
+      100% { opacity: 0; transform: scale(1.5); }
+    }
+
+    /* Node glow pulse */
+    .node-pulse {
+      animation: node-glow 2.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes node-glow {
+      0%   { filter: drop-shadow(0 0 4px #00e5ff); }
+      100% { filter: drop-shadow(0 0 12px #00e5ff) drop-shadow(0 0 24px rgba(0,229,255,0.4)); }
+    }
+
+    /* River flow animation */
+    .river-flow {
+      stroke-dasharray: 6 3;
+      animation: flow 2s linear infinite;
+    }
+
+    @keyframes flow {
+      to { stroke-dashoffset: -18; }
+    }
+
+    /* =====================================================================
+       RESPONSIVE BREAKPOINTS
+    ===================================================================== */
+    @media (max-width: 1100px) {
+      .content-wrapper { padding: 24px 36px 0 36px; }
+      .headline { font-size: 34px; }
+      .main-grid { gap: 24px; }
+      .site-footer { padding: 14px 36px 18px 36px; }
+    }
+
+    @media (max-width: 860px) {
+      .map-overlay { display: none; }
+      .content-wrapper { padding: 20px 24px 0 24px; }
+      .main-grid {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding-top: 8px;
+      }
+      .hero { align-items: center; text-align: center; max-width: 560px; }
+      .brand { justify-content: center; }
+      .headline { font-size: 30px; }
+      .feature { text-align: left; }
+      .stripes { display: none; }
+      .card-col { justify-content: center; width: 100%; }
+      .auth-card { max-width: 520px; }
+      .site-footer { padding: 14px 24px 18px 24px; flex-direction: column; gap: 8px; text-align: center; }
+    }
+
+    @media (max-width: 520px) {
+      .content-wrapper { padding: 16px 16px 0 16px; }
+      .auth-card { padding: 28px 20px 24px 20px; }
+      .headline { font-size: 26px; }
+      .brand-name { font-size: 19px; }
+      .footer-links { flex-wrap: wrap; justify-content: center; gap: 4px 6px; }
+      .site-footer { padding: 12px 16px 16px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================================================================
+       LOADING OVERLAY
+  =================================================================== -->
+  <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <div>
+      <div class="loading-title">Authenticating…</div>
+      <div class="loading-text">Loading Risk Intelligence Engine</div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       TOAST
+  =================================================================== -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive">
+    <div class="toast-icon" id="toastIcon">
+      <svg id="toastSvg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <span class="toast-msg" id="toastMsg"></span>
+  </div>
+
+  <!-- ===================================================================
+       PAGE SHELL
+  =================================================================== -->
+  <div class="page" role="main">
+
+    <!-- Background grid -->
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <!-- Kenya Map Overlay (SVG) -->
+    <svg class="map-overlay" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="rg1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#0a5bcc" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#0a5bcc" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="rg2" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#00e5ff" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="nodeGlow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Ambient glows -->
+      <circle cx="290" cy="390" r="175" fill="url(#rg1)" opacity="0.5"/>
+      <circle cx="230" cy="440" r="80"  fill="url(#rg2)" opacity="0.55"/>
+      <circle cx="380" cy="490" r="90"  fill="url(#rg2)" opacity="0.45"/>
+      <circle cx="160" cy="400" r="65"  fill="url(#rg2)" opacity="0.45"/>
+
+      <!-- Kenya boundary -->
+      <path
+        d="M220,145 L285,120 L400,175 L475,248 L462,355 L492,405 L428,455 L388,525 L345,555 L265,500 L205,480 L162,428 L145,368 L165,260 L188,200 Z"
+        stroke="#00E5FF" stroke-width="2.2" stroke-linejoin="round"
+        fill="rgba(0,229,255,0.025)" filter="url(#glow)"
+      />
+
+      <!-- River networks -->
+      <path d="M238,372 Q290,396 352,424 T396,498" stroke="#00E5FF" stroke-width="1.6" opacity="0.8" class="river-flow"/>
+      <path d="M185,398 Q240,386 295,370 T345,340" stroke="#22d3ee" stroke-width="1.3" opacity="0.65" class="river-flow" style="animation-delay:-1s"/>
+      <path d="M250,305 Q305,328 375,382 T445,435" stroke="#00b4ca" stroke-width="1.2" opacity="0.5" class="river-flow" style="animation-delay:-0.5s"/>
+
+      <!-- Node: Nairobi Basin -->
+      <g transform="translate(245,400)" class="node-pulse" filter="url(#nodeGlow)">
+        <circle r="9" fill="#00E5FF"/>
+        <circle class="pulse-ring" r="9" stroke="#00E5FF" stroke-width="1.8" fill="none"/>
+        <circle class="pulse-ring pulse-ring-2" r="9" stroke="#00E5FF" stroke-width="1.2" fill="none"/>
+        <text x="14" y="4" fill="#fff" font-size="10.5" font-weight="700" font-family="Inter" paint-order="stroke" stroke="#030912" stroke-width="3">Nairobi Basin</text>
+      </g>
+
+      <!-- Node: Mombasa Coast -->
+      <g transform="translate(378,500)" class="node-pulse" style="animation-delay:0.5s" filter="url(#nodeGlow)">
+        <circle r="7" fill="#00E5FF"/>
+        <circle class="pulse-ring" r="7" stroke="#00E5FF" stroke-width="1.5" fill="none"/>
+        <text x="12" y="4" fill="#CBD5E1" font-size="9.5" font-weight="600" font-family="Inter" paint-order="stroke" stroke="#030912" stroke-width="3">Mombasa Coast</text>
+      </g>
+
+      <!-- Node: Lake Victoria / Kisumu -->
+      <g transform="translate(162,408)" class="node-pulse" style="animation-delay:1s" filter="url(#nodeGlow)">
+        <circle r="7" fill="#00E5FF"/>
+        <circle class="pulse-ring" r="7" stroke="#00E5FF" stroke-width="1.5" fill="none"/>
+        <text x="-82" y="4" fill="#CBD5E1" font-size="9.5" font-weight="600" font-family="Inter" paint-order="stroke" stroke="#030912" stroke-width="3">Lake Victoria</text>
+      </g>
+
+      <!-- Node: Tana River -->
+      <g transform="translate(352,348)" filter="url(#nodeGlow)">
+        <circle r="5" fill="#22d3ee"/>
+        <text x="10" y="3" fill="#94A3B8" font-size="9" font-weight="500" font-family="Inter" paint-order="stroke" stroke="#030912" stroke-width="3">Tana River</text>
+      </g>
+
+      <!-- Node: Garissa -->
+      <g transform="translate(428,330)" filter="url(#nodeGlow)">
+        <circle r="4.5" fill="#22d3ee" opacity="0.8"/>
+        <text x="9" y="3" fill="#94A3B8" font-size="8.5" font-weight="500" font-family="Inter" paint-order="stroke" stroke="#030912" stroke-width="3">Garissa</text>
+      </g>
+    </svg>
+
+    <!-- Main content -->
+    <div class="content-wrapper">
+      <div class="main-grid">
+
+        <!-- ===============================================================
+             LEFT — HERO COLUMN
+        =============================================================== -->
+        <div class="hero">
+
+          <!-- Brand -->
+          <div class="brand">
+            <div class="brand-logo">
+              <!-- Kenya Re Logo SVG (K-mark shape) -->
+              <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kenya Re logo">
+                <polygon points="12,10 38,10 20,90 12,90" fill="#E52320"/>
+                <polygon points="26,10 68,10 52,44 36,44" fill="#FFFFFF"/>
+                <polygon points="48,48 90,10 72,90 54,58" fill="#00E5FF"/>
+                <polygon points="30,54 48,90 34,90 18,58" fill="#0066CC"/>
+              </svg>
+            </div>
+            <div class="brand-text-group">
+              <div class="brand-name">KENYA <span class="red">RE</span></div>
+              <div class="brand-tagline">Your Reinsurance Partner</div>
+            </div>
+          </div>
+
+          <!-- Platform badge -->
+          <div class="platform-badge">Flood Risk Intelligence Platform</div>
+
+          <!-- Headline -->
+          <h1 class="headline">
+            <span class="line-white">Kenya Flood</span>
+            <span class="line-cyan">Risk Intelligence Platform</span>
+          </h1>
+
+          <!-- Tagline -->
+          <p class="sub-tagline">
+            Understand flood risk. Model potential losses.<br>Make better decisions.
+          </p>
+
+          <!-- Features -->
+          <div class="features">
+            <div class="feature">
+              <div class="feature-icon" aria-hidden="true">
+                <!-- Water drop icon -->
+                <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              </div>
+              <div>
+                <div class="feature-title">Understand flood risk</div>
+                <div class="feature-desc">See where and how floods can impact.</div>
+              </div>
+            </div>
+            <div class="feature">
+              <div class="feature-icon" aria-hidden="true">
+                <!-- Network/model icon -->
+                <svg viewBox="0 0 24 24">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Model potential losses</div>
+                <div class="feature-desc">Turn data into actionable insights.</div>
+              </div>
+            </div>
+            <div class="feature">
+              <div class="feature-icon" aria-hidden="true">
+                <!-- Bar chart up icon -->
+                <svg viewBox="0 0 24 24">
+                  <line x1="18" y1="20" x2="18" y2="10"/>
+                  <line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6"  y1="20" x2="6"  y2="14"/>
+                  <polyline points="4 8 10 2 16 8"/>
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Make better decisions</div>
+                <div class="feature-desc">With confidence and clarity.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Brand stripes -->
+          <div class="stripes" aria-hidden="true">
+            <div class="stripe stripe-white"></div>
+            <div class="stripe stripe-red"></div>
+            <div class="stripe stripe-blue"></div>
+          </div>
+        </div><!-- /hero -->
+
+        <!-- ===============================================================
+             RIGHT — AUTH CARD
+        =============================================================== -->
+        <div class="card-col">
+          <div class="auth-card" role="region" aria-label="Sign in form">
+
+            <!-- Card header -->
+            <div class="card-header">
+              <div class="shield-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <div class="card-title">Welcome Back</div>
+                <div class="card-subtitle">Sign in to access the Kenya Flood CAT Risk Intelligence Platform.</div>
+              </div>
+            </div>
+
+            <!-- Form -->
+            <form id="loginForm" novalidate>
+              <!-- Email / Username -->
+              <div class="form-group">
+                <label class="form-label" for="emailInput">Email or Username</label>
+                <div class="input-wrapper">
+                  <span class="icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </span>
+                  <input
+                    type="text"
+                    id="emailInput"
+                    name="email"
+                    placeholder="Enter your email or username"
+                    value="underwriter@kenyare.co.ke"
+                    autocomplete="username"
+                    required
+                    aria-required="true"
+                  />
+                </div>
+              </div>
+
+              <!-- Password -->
+              <div class="form-group">
+                <label class="form-label" for="passwordInput">Password</label>
+                <div class="input-wrapper">
+                  <span class="icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </span>
+                  <input
+                    type="password"
+                    id="passwordInput"
+                    name="password"
+                    placeholder="Enter your password"
+                    value="••••••••••••"
+                    autocomplete="current-password"
+                    required
+                    aria-required="true"
+                  />
+                  <button type="button" class="input-toggle" id="togglePassword" aria-label="Show or hide password">
+                    <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Remember me / Forgot -->
+              <div class="aux-row">
+                <label class="checkbox-label" for="rememberMe">
+                  <input type="checkbox" id="rememberMe" name="remember" checked />
+                  <span class="checkbox-box" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                  Remember me
+                </label>
+                <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+              </div>
+
+              <!-- Sign In CTA -->
+              <button type="submit" class="btn-primary" id="signInBtn">
+                Sign In
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="divider">OR</div>
+
+            <!-- MFA button -->
+            <button class="btn-mfa" id="mfaBtn" type="button">
+              <span class="mfa-left">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Sign in with Multi-Factor Authentication
+              </span>
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+
+            <!-- Trust row -->
+            <div class="trust-row" aria-label="Security certifications">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Secure</span>
+              <span class="trust-dot" aria-hidden="true"></span>
+              <span>Audited</span>
+              <span class="trust-dot" aria-hidden="true"></span>
+              <span>Human Controlled</span>
+            </div>
+
+          </div><!-- /auth-card -->
+        </div><!-- /card-col -->
+
+      </div><!-- /main-grid -->
+    </div><!-- /content-wrapper -->
+
+    <!-- ===================================================================
+         SITE FOOTER
+    =================================================================== -->
+    <footer class="site-footer" role="contentinfo">
+      <span>&copy; 2025 Kenya Reinsurance Corporation. All rights reserved.</span>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="#">Privacy</a>
+        <span class="footer-sep">|</span>
+        <a href="#">Security</a>
+        <span class="footer-sep">|</span>
+        <a href="#">Support</a>
+        <span class="footer-sep">|</span>
+        <span>Kenya Flood CAT Platform &nbsp;v1.0</span>
+      </nav>
+    </footer>
+
+  </div><!-- /page -->
+
+  <!-- ===================================================================
+       JAVASCRIPT — INTERACTIONS
+  =================================================================== -->
+  <script>
+    'use strict';
+
+    /* -----------------------------------------------------------------
+       Mock credentials (replace with real API call)
+    ----------------------------------------------------------------- */
+    const VALID_CREDENTIALS = {
+      email: 'underwriter@kenyare.co.ke',
+      password: '••••••••••••'
+    };
+
+    /* -----------------------------------------------------------------
+       Toast utility
+    ----------------------------------------------------------------- */
+    function showToast(msg, type = 'success') {
+      const toast    = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const icon     = document.getElementById('toastIcon');
+      const svg      = document.getElementById('toastSvg');
+
+      toastMsg.textContent = msg;
+      icon.className       = 'toast-icon ' + type;
+
+      if (type === 'success') {
+        svg.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+      } else {
+        svg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
+      }
+
+      toast.classList.add('show');
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    /* -----------------------------------------------------------------
+       Loading overlay
+    ----------------------------------------------------------------- */
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').classList.toggle('active', show);
+    }
+
+    /* -----------------------------------------------------------------
+       Password visibility toggle
+    ----------------------------------------------------------------- */
+    const toggleBtn = document.getElementById('togglePassword');
+    const pwInput   = document.getElementById('passwordInput');
+    let pwVisible   = false;
+
+    toggleBtn.addEventListener('click', () => {
+      pwVisible = !pwVisible;
+      pwInput.type = pwVisible ? 'text' : 'password';
+      toggleBtn.setAttribute('aria-label', pwVisible ? 'Hide password' : 'Show password');
+      document.getElementById('eyeIcon').innerHTML = pwVisible
+        ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    });
+
+    /* -----------------------------------------------------------------
+       Remember me checkbox custom rendering
+    ----------------------------------------------------------------- */
+    document.getElementById('rememberMe').addEventListener('change', function () {
+      const box = this.nextElementSibling;
+      if (this.checked) {
+        box.style.background = 'var(--cyan)';
+        box.style.border = 'none';
+        box.querySelector('svg').style.display = '';
+      } else {
+        box.style.background = 'transparent';
+        box.style.border = '1.5px solid var(--border-input)';
+        box.querySelector('svg').style.display = 'none';
+      }
+    });
+
+    /* -----------------------------------------------------------------
+       Sign-in form submission
+    ----------------------------------------------------------------- */
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value;
+      const btn      = document.getElementById('signInBtn');
+
+      if (!email || !password) {
+        showToast('Please enter your email and password.', 'error');
+        return;
+      }
+
+      // Disable button during processing
+      btn.disabled  = true;
+      btn.textContent = 'Signing In…';
+
+      showLoading(true);
+
+      // Simulate async authentication delay (replace with real API)
+      await new Promise(r => setTimeout(r, 1800));
+
+      showLoading(false);
+      btn.disabled    = false;
+      btn.innerHTML   = 'Sign In <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#030912;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+
+      // Accept any credentials (demo mode) — in production: validate against API
+      showToast('✓ Welcome back. Loading your dashboard…', 'success');
+
+      // Redirect after short delay (replace with router.push or actual redirect)
+      setTimeout(() => {
+        window.location.href = 'http://localhost:8501';
+      }, 1200);
+    });
+
+    /* -----------------------------------------------------------------
+       MFA button
+    ----------------------------------------------------------------- */
+    document.getElementById('mfaBtn').addEventListener('click', async () => {
+      showLoading(true);
+      await new Promise(r => setTimeout(r, 1400));
+      showLoading(false);
+      showToast('MFA Authentication initiated — check your authenticator app.', 'success');
+      setTimeout(() => { window.location.href = 'http://localhost:8501'; }, 2000);
+    });
+
+    /* -----------------------------------------------------------------
+       Forgot password link
+    ----------------------------------------------------------------- */
+    document.getElementById('forgotLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      showToast('A password reset link will be sent to your registered email.', 'success');
+    });
+
+    /* -----------------------------------------------------------------
+       Keyboard accessibility — allow checkbox toggle on space/enter
+    ----------------------------------------------------------------- */
+    document.querySelector('.checkbox-label').addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('rememberMe').click();
+      }
+    });
+  </script>
+
+</body>
+</html>

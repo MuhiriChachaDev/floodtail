@@ -4,9 +4,10 @@
 > 
 > *FLOODTAIL connects catastrophe risk modeling, portfolio accumulation, policy-level tail attribution, uncertainty, technical pricing, explainability, and human underwriting into one governed agentic workflow.*
 
-**Release**: `FLOODTAIL Demo Release v1.0.0-demo`  
-**Test Suite**: 128 / 128 Passed (0 Failures, 0 Skips)  
-**Supported Runtimes**: Python 3.10 – 3.14 (Tested on Python 3.14.5)  
+**Release**: `FLOODTAIL Grade 1 Commercial Release v1.0.0`  
+**Test Suite**: 141 / 141 Passed (100% Deterministic Actuarial Green)  
+**Supported Runtimes**: Python 3.10 – 3.14 (Verified on Python 3.14.5)  
+**Primary Currency Base**: Kenya Shillings (KES) with multi-currency normalizer (USD, EUR, GBP)  
 
 ---
 
@@ -130,13 +131,13 @@ python app.py
 
 ## Test Suite Verification
 
-Run all 128 tests:
+Run all 141 tests:
 ```bash
 pytest -v
 ```
 
 ```
-======================= 128 passed in 60.13s (0:01:00) ========================
+======================= 141 passed in 117.62s (0:01:57) =======================
 ```
 
 | Test File | Tests | Coverage |
@@ -147,6 +148,11 @@ pytest -v
 | `tests/test_risk_analytics.py` | 18 | AAL, OEP/AEP, VaR/TVaR, Euler allocation, pricing waterfall, CRN |
 | `tests/test_agent_workflow.py` | 20 | 11-agent sequential orchestrator, governance, trace validation |
 | `tests/test_frontend_smoke.py` | 11 | UI components, 16-page catalogue, Plotly charts, audit verification |
+| `tests/test_uncertainty.py` | 4 | YLT bootstrap uncertainty corridors (AAL, TVaR, Premium) |
+| `tests/test_skeptic.py` | 2 | Adversarial red-team stress testing & assumption sensitivity |
+| `tests/test_grounding.py` | 2 | Numeric Grounding Guard & AI hallucination prevention |
+| `tests/test_shadow_exposure.py` | 2 | Protection gap & regional density multiplier modeling |
+| `tests/test_treaty.py` | 3 | Reinsurance treaty layering (Cedant retention & Cat XOL layers) |
 
 ---
 

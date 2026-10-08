@@ -52,6 +52,21 @@ def confidence_badge(level: str) -> str:
     )
 
 
+def provenance_badge(source_type: str) -> str:
+    """Return styled HTML badge for data provenance (Observed / Modeled / Assumed / Audited)."""
+    st_upper = source_type.upper()
+    if "OBSERVE" in st_upper:
+        return '<span class="ft-badge" style="background:rgba(59,130,246,0.15);color:#60A5FA;border:1px solid #3B82F644;font-size:10px;padding:2px 6px;">👁️ Observed</span>'
+    elif "MODEL" in st_upper:
+        return '<span class="ft-badge" style="background:rgba(249,115,22,0.15);color:#FB923C;border:1px solid #F9731644;font-size:10px;padding:2px 6px;">⚙️ Modeled</span>'
+    elif "ASSUM" in st_upper:
+        return '<span class="ft-badge" style="background:rgba(168,85,247,0.15);color:#C084FC;border:1px solid #A855F744;font-size:10px;padding:2px 6px;">📐 Assumed</span>'
+    elif "AUDIT" in st_upper or "CHAIN" in st_upper:
+        return '<span class="ft-badge" style="background:rgba(16,185,129,0.15);color:#34D399;border:1px solid #10B98144;font-size:10px;padding:2px 6px;">🔒 Audited</span>'
+    return f'<span class="ft-badge" style="background:rgba(100,116,139,0.15);color:#94A3B8;border:1px solid #64748B44;font-size:10px;padding:2px 6px;">● {source_type}</span>'
+
+
+
 # ---------------------------------------------------------------------------
 # GENERAL CONTAINERS & HEADERS
 # ---------------------------------------------------------------------------
@@ -232,32 +247,45 @@ def date_and_filter_row(
 def kpi_card(
     title: str,
     value_str: str,
-    delta_str: str,
+    delta_str: str = "",
     delta_positive: bool = True,
     accent_color: str = Colors.ACCENT_ORANGE,
     icon_symbol: str = "💵",
     sparkline_fig: Optional[Any] = None,
+    provenance: Optional[str] = None,
+    corridor_str: Optional[str] = None,
+    sublabel: Optional[str] = None,
 ) -> None:
-    """Render single KPI card matching Image 1 with colored circular icon, big number, sparkline, and trend."""
+    """Render single KPI card matching dark analytical theme with provenance and confidence corridor."""
     delta_color = Colors.STATUS_GREEN if delta_positive else Colors.STATUS_RED
     delta_arrow = "↗" if delta_positive else "↘"
+    prov_html = f"&nbsp;{provenance_badge(provenance)}" if provenance else ""
+    corridor_html = f'<div style="font-size:10px;color:{Colors.TEXT_MUTED};margin-top:2px;font-family:monospace;">{corridor_str}</div>' if corridor_str else ""
+    sub_text = sublabel if sublabel is not None else "vs Prior Calibration"
+    trend_html = f"""
+        <div class="ft-kpi-trend" style="color:{delta_color};">
+            <span>{delta_arrow} {delta_str}</span>
+            <span style="color:{Colors.TEXT_MUTED};font-size:10px;margin-left:2px;">{sub_text}</span>
+        </div>
+    """ if delta_str else f'<div style="font-size:10px;color:{Colors.TEXT_MUTED};margin-top:4px;">{sub_text}</div>'
 
     st.markdown(
         f"""
         <div class="ft-kpi-card">
-            <div class="ft-kpi-header">
-                <div class="ft-kpi-icon" style="background:{accent_color}22;color:{accent_color};border:1px solid {accent_color}44;">
-                    {icon_symbol}
+            <div class="ft-kpi-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <div class="ft-kpi-icon" style="background:{accent_color}22;color:{accent_color};border:1px solid {accent_color}44;">
+                        {icon_symbol}
+                    </div>
+                    <span>{title}</span>
                 </div>
-                <span>{title}</span>
+                {prov_html}
             </div>
             <div class="ft-kpi-value-row">
                 <div class="ft-kpi-value">{value_str}</div>
             </div>
-            <div class="ft-kpi-trend" style="color:{delta_color};">
-                <span>{delta_arrow} {delta_str}</span>
-                <span style="color:{Colors.TEXT_MUTED};font-size:10px;margin-left:2px;">vs Apr 1 – Apr 30</span>
-            </div>
+            {corridor_html}
+            {trend_html}
         </div>
         """,
         unsafe_allow_html=True,

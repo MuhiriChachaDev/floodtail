@@ -378,3 +378,37 @@ def marginal_tvar_scatter(tivs: list[float], marginals: list[float], labels: lis
         yaxis=dict(title="Marginal TVaR (KES)"),
     )
     return _apply_dark_axes(fig)
+
+
+# ---------------------------------------------------------------------------
+# Premium Confidence Corridor Chart (Low / Base / High)
+# ---------------------------------------------------------------------------
+
+def premium_confidence_corridor_chart(
+    low_premium: float,
+    base_premium: float,
+    high_premium: float,
+    title: str = "Indicated Technical Premium — Confidence Corridor",
+) -> go.Figure:
+    """Renders Low Case (10th pct), Base Case (Model Point), and High Case (90th pct)."""
+    cases = ["Low Case (P10)", "Base Indicated", "High Case (P90)"]
+    values = [low_premium, base_premium, high_premium]
+    colors = [Colors.ACCENT_CYAN, Colors.ACCENT_ORANGE, Colors.ACCENT_RED]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=cases,
+        y=values,
+        marker=dict(color=colors, cornerradius=4),
+        text=[f"KES {v:,.0f}" for v in values],
+        textposition="outside",
+        textfont=dict(color=Colors.TEXT_PRIMARY, size=11, family="Inter, sans-serif"),
+    ))
+
+    fig.update_layout(
+        **_base_layout(title=dict(text=title, font=dict(size=14, color=Colors.TEXT_PRIMARY))),
+        yaxis=dict(title="Technical Premium (KES)", tickprefix="KES "),
+        height=280,
+    )
+    return _apply_dark_axes(fig)
+
