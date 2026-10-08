@@ -247,6 +247,46 @@ Dev compose still uses `--reload` and published ports. Production uses `docker-c
 
 ## Troubleshooting
 
+<<<<<<< HEAD
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Postgres DSN (or SQLite path for local) |
+| `OLLAMA_HOST` | e.g. `http://ollama:11434` |
+| `OLLAMA_MODEL` | Default `qwen2.5:3b-instruct` |
+| `KEYCLOAK_URL` / realm / client | JWT validation |
+| `CORS_ORIGINS` | Lockdown; no `*` in prod |
+| `AES_KEY` / secrets | PII at rest |
+| `ASSUMPTIONS_VERSION` | e.g. `nairobi-pluvial-v1` |
+
+<<<<<<< HEAD
+```bash
+streamlit run app.py
+```
+- The browser will automatically open to `http://localhost:8501`.
+- In the sidebar, click **🎯 Demo** to immediately execute and load the frozen 10,000-year demonstration pipeline.
+
+### B. Headless CLI Bootstrap & Smoke Test
+To verify database, configuration, and environment integrity headlessly:
+
+```bash
+python app.py
+```
+Output:
+```
+FLOODTAIL backend bootstrap complete. Run ID: <UUID>
+```
+
+### C. Automated Test Suite Execution
+Execute the entire regression and validation suite:
+
+```bash
+pytest -v
+```
+All 141 tests across foundation, data layer, catastrophe engine, risk analytics, agent workflow, uncertainty, skeptic red-teaming, grounding, shadow exposure, treaty XOL, and frontend smoke will execute and pass.
+=======
+Secrets via env / secret manager only — never commit `.env`.
+>>>>>>> c3d0325909f5ce2a26452beab68b6bc838e8167d
+=======
 | Symptom | Fix |
 |---------|-----|
 | CORS error in browser | Add exact Vercel origin to `CORS_ORIGINS`; recreate `api` |
@@ -256,6 +296,7 @@ Dev compose still uses `--reload` and published ports. Production uses `docker-c
 | Nginx fails on TLS conf | Stay on `floodtail.http-only.conf` until certs exist |
 | Vercel build can't find app | Set Root Directory to `apps/web` |
 | Long run fails via `/backend/*` rewrite | Expected — use direct `NEXT_PUBLIC_API_URL` (already default in `lib/api.ts`) |
+>>>>>>> 70097cdd3a2f1c7d590814eb570d33796d7486e9
 
 ---
 
