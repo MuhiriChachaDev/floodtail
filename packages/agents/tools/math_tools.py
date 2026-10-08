@@ -13,7 +13,14 @@ from packages.cat_core.capital import (
     compute_capital_band_from_profile,
     ep_allowlist,
 )
-from packages.cat_core.ep import build_ep_curve, build_tier_losses, discrete_aal
+from packages.cat_core.ep import (
+    AAL_CAVEAT,
+    AAL_METHOD,
+    build_ep_curve,
+    build_tier_losses,
+    discrete_aal,
+    light_mc_aal_band,
+)
 from packages.cat_core.financial import add_loss_columns, reconcile_location_losses
 from packages.cat_core.pricing import technical_premium
 from packages.cat_core.reinsurance import build_financial_view
@@ -45,6 +52,20 @@ def compute_ep_capital(
     tier_losses = build_tier_losses(tier_totals, profile, mean_damage_by_tier=mean_dmg)
     ep_curve = build_ep_curve(tier_losses)
     aal = discrete_aal(tier_losses)
+    warn_list = list(warnings or [])
+    aal_uncertainty = None
+    mc = profile.monte_carlo
+    if mc.enabled:
+        aal_uncertainty = light_mc_aal_band(
+            work,
+            profile,
+            n_sims=mc.n_sims,
+            noise_sigma=mc.noise_sigma,
+            seed=mc.seed,
+        )
+        warn_list.append(
+            f"Light MC AAL band enabled (n={mc.n_sims}, sigma={mc.noise_sigma})"
+        )
     total_tiv = float(work["tiv_kes"].sum())
     capital = compute_capital_band_from_profile(
         tier_losses, aal, total_tiv, profile
@@ -66,10 +87,19 @@ def compute_ep_capital(
     # Stamp honesty notes onto data_labels when it supports notes
     if hasattr(data_labels, "notes"):
         extra = [
+            AAL_CAVEAT,
             f"Treaty {financial.treaty.name} ({financial.treaty.status})",
             f"Pricing {pricing.status}: load×{pricing.load_factor}",
         ]
-        data_labels.notes = list(getattr(data_labels, "notes", []) or []) + extra
+        notes = list(getattr(data_labels, "notes", []) or [])
+        for note in extra:
+            if note not in notes:
+                notes.append(note)
+        data_labels.notes = notes
+    if hasattr(data_labels, "aal_method"):
+        data_labels.aal_method = AAL_METHOD
+    if hasattr(data_labels, "aal_caveat"):
+        data_labels.aal_caveat = AAL_CAVEAT
     accum = build_accumulation_summary(work, profile.tier_names)
     from packages.cat_core.depth_damage import build_depth_damage_summary
 
@@ -85,6 +115,9 @@ def compute_ep_capital(
         tier_losses=tier_losses,
         ep_curve=ep_curve,
         aal_kes=round(aal, 2),
+        aal_method=AAL_METHOD,
+        aal_caveat=AAL_CAVEAT,
+        aal_uncertainty=aal_uncertainty,
         capital_band=capital,
         financial=financial,
         pricing=pricing,
@@ -93,7 +126,7 @@ def compute_ep_capital(
         baseline_delta=dict(baseline_delta or {}),
         accumulation_summary=accum,
         depth_damage_summary=depth_damage,
-        warnings=list(warnings or []),
+        warnings=warn_list,
     )
     return work, metrics, tier_losses, capital
 

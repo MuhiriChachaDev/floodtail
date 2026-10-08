@@ -12,7 +12,14 @@ from packages.cat_core.accumulation import build_accumulation_summary
 from packages.cat_core.assumptions import AssumptionsProfile
 from packages.cat_core.capital import compute_capital_band_from_profile
 from packages.cat_core.depth import add_depth_columns
-from packages.cat_core.ep import build_ep_curve, build_tier_losses, discrete_aal
+from packages.cat_core.ep import (
+    AAL_CAVEAT,
+    AAL_METHOD,
+    build_ep_curve,
+    build_tier_losses,
+    discrete_aal,
+    light_mc_aal_band,
+)
 from packages.cat_core.exposure import default_data_labels
 from packages.cat_core.financial import add_loss_columns, reconcile_location_losses
 from packages.cat_core.insight_template import build_template_insight
@@ -89,7 +96,12 @@ def run_cat(
     stages: list[AgentResult] = []
     warnings: list[str] = []
     labels = data_labels or default_data_labels(profile)
+    labels.aal_method = AAL_METHOD
+    labels.aal_caveat = AAL_CAVEAT
+    if AAL_CAVEAT not in labels.notes:
+        labels.notes = list(labels.notes) + [AAL_CAVEAT]
     baseline_delta: dict = {}
+    vuln_curves = profile.resolved_vulnerability_curves()
 
     work = enrich_frame(
         frame,
@@ -171,7 +183,9 @@ def run_cat(
         from packages.ml.vulnerability.infer import predict_vulnerability_for_tiers
 
         # Keep prior damage for delta
-        prior_work = add_damage_ratio_columns(work, profile.tier_names)
+        prior_work = add_damage_ratio_columns(
+            work, profile.tier_names, curves=vuln_curves
+        )
         for tier in profile.tier_names:
             work[f"damage_ratio_prior_{tier}"] = prior_work[f"damage_ratio_{tier}"]
         work, vuln_lineage = predict_vulnerability_for_tiers(
@@ -188,12 +202,18 @@ def run_cat(
             )
         )
     else:
-        work = add_damage_ratio_columns(work, profile.tier_names)
+        work = add_damage_ratio_columns(
+            work, profile.tier_names, curves=vuln_curves
+        )
         stages.append(
             AgentResult(
                 stage="predict_vulnerability",
                 status=StageStatus.SKIPPED,
-                message="Using JRC-adapted vulnerability priors (no ML)",
+                message=(
+                    "Using pluggable vulnerability priors "
+                    f"({len(vuln_curves)} housing classes; no ML)"
+                ),
+                data={"housing_classes": sorted(vuln_curves.keys())},
                 critical=False,
             )
         )
@@ -217,7 +237,9 @@ def run_cat(
             base[f"hazard_score_{tier}"] = baseline_scores[tier]
         base = enrich_frame(base, hotspots=hotspots, use_osm=False)
         base = add_depth_columns(base, profile)
-        base = add_damage_ratio_columns(base, profile.tier_names)
+        base = add_damage_ratio_columns(
+            base, profile.tier_names, curves=vuln_curves
+        )
         base = add_loss_columns(base, profile.tier_names)
         base_totals = reconcile_location_losses(base, profile.tier_names)
         base_tiers = build_tier_losses(base_totals, profile)
@@ -235,6 +257,21 @@ def run_cat(
     aal = discrete_aal(tier_losses)
     if baseline_delta:
         baseline_delta["aal_delta_kes"] = round(aal - float(baseline_delta["baseline_aal_kes"]), 2)
+
+    aal_uncertainty = None
+    mc = profile.monte_carlo
+    if mc.enabled:
+        aal_uncertainty = light_mc_aal_band(
+            work,
+            profile,
+            n_sims=mc.n_sims,
+            noise_sigma=mc.noise_sigma,
+            seed=mc.seed,
+        )
+        warnings.append(
+            f"Light MC AAL band enabled (n={mc.n_sims}, sigma={mc.noise_sigma}) — "
+            "sensitivity only, not a flood catalogue."
+        )
 
     total_tiv = float(work["tiv_kes"].sum())
     capital = compute_capital_band_from_profile(
@@ -289,6 +326,9 @@ def run_cat(
         tier_losses=tier_losses,
         ep_curve=ep_curve,
         aal_kes=round(aal, 2),
+        aal_method=AAL_METHOD,
+        aal_caveat=AAL_CAVEAT,
+        aal_uncertainty=aal_uncertainty,
         capital_band=capital,
         financial=financial,
         pricing=pricing,
