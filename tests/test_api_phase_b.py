@@ -34,7 +34,9 @@ def test_builtin_portfolio_run_insight_e2e() -> None:
     assert portfolio["synthetic"] is True
     pid = portfolio["id"]
 
-    run_r = client.post("/v1/runs", json={"portfolio_id": pid, "use_ml": False})
+    run_r = client.post(
+        "/v1/runs", json={"portfolio_id": pid, "force_ollama_down": True}
+    )
     assert run_r.status_code == 200, run_r.text
     run_body = run_r.json()
     assert run_body["run"]["status"] == "COMPLETED"
@@ -46,6 +48,9 @@ def test_builtin_portfolio_run_insight_e2e() -> None:
     assert metrics["capital_band"]["floor_kes"] <= metrics["capital_band"]["ceiling_kes"]
     assert metrics["data_labels"]["synthetic_exposure"] is True
     assert metrics["assumptions_version"]
+    assert metrics["hazard_model_version"]
+    assert metrics["vuln_model_version"]
+    assert "aal_delta_kes" in (metrics.get("baseline_delta") or {})
 
     insight = run_body["insight"]
     assert insight["insured_houses"] == 600
@@ -68,8 +73,23 @@ def test_builtin_portfolio_run_insight_e2e() -> None:
     assert "by_housing_class" in accum.json()["accumulation"]
 
 
-def test_ml_without_pinned_models_returns_400() -> None:
+def test_ml_without_pinned_models_returns_400(tmp_path, monkeypatch) -> None:
+    from apps.api.settings import get_settings
+
+    empty = tmp_path / "models"
+    empty.mkdir()
+    s = get_settings()
+    monkeypatch.setattr(s, "models_dir", empty)
+
     r = client.post("/v1/portfolios", data={"source": "builtin_nairobi"})
     pid = r.json()["portfolio"]["id"]
-    bad = client.post("/v1/runs", json={"portfolio_id": pid, "use_ml": True})
+    bad = client.post("/v1/runs", json={"portfolio_id": pid})
     assert bad.status_code == 400
+
+
+def test_prior_only_rejected_when_ml_required() -> None:
+    r = client.post("/v1/portfolios", data={"source": "builtin_nairobi"})
+    pid = r.json()["portfolio"]["id"]
+    bad = client.post("/v1/runs", json={"portfolio_id": pid, "use_ml": False})
+    assert bad.status_code == 400
+    assert "ML is required" in bad.json()["detail"]

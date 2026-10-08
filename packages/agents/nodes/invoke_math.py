@@ -81,6 +81,17 @@ def node_invoke_math(state: AgentGraphState) -> AgentGraphState:
                 },
             }
 
+    enrich_data = {}
+    for stage in state.get("stages") or []:
+        if stage.stage == "enrich" and stage.data:
+            enrich_data = dict(stage.data)
+            break
+    if enrich_data:
+        metrics.accumulation_summary = {
+            **(metrics.accumulation_summary or {}),
+            "enrichment": enrich_data,
+        }
+
     allowlist = get_allowlist(metrics)
     out = dict(state)
     out["frame"] = work
@@ -95,13 +106,3 @@ def node_invoke_math(state: AgentGraphState) -> AgentGraphState:
         critical=True,
     )
 
-
-def node_xai_stub(state: AgentGraphState) -> AgentGraphState:
-    """Stage 7 — XAI deferred to Phase E."""
-    return append_stage(
-        state,
-        stage="xai",
-        status=StageStatus.SKIPPED,
-        message="XAI (SHAP/CF) lands in Phase E",
-        critical=False,
-    )

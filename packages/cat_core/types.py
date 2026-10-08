@@ -74,7 +74,7 @@ class RunConfig(BaseModel):
     portfolio_id: str
     hazard_model_version: Optional[str] = None
     vuln_model_version: Optional[str] = None
-    use_ml: bool = False
+    use_ml: bool = True  # product default: predictive ML is a required stage
     enable_freetext: bool = False
     freetext: Optional[str] = None
     require_human_gate_1: bool = False
@@ -130,6 +130,10 @@ class MetricsPayload(BaseModel):
     vuln_model_version: Optional[str] = None
     baseline_delta: dict[str, Any] = Field(default_factory=dict)
     accumulation_summary: dict[str, Any] = Field(default_factory=dict)
+    xai_summary: dict[str, Any] = Field(
+        default_factory=dict,
+        description="In-graph SHAP drivers (non-critical; empty if XAI skipped/failed).",
+    )
     warnings: list[str] = Field(default_factory=list)
 
 

@@ -13,7 +13,8 @@ from packages.agents.nodes.enrich import node_enrich
 from packages.agents.nodes.freetext import node_freetext
 from packages.agents.nodes.gates import node_governance, node_human_gate_1
 from packages.agents.nodes.insight import node_insight
-from packages.agents.nodes.invoke_math import node_invoke_math, node_xai_stub
+from packages.agents.nodes.invoke_math import node_invoke_math
+from packages.agents.nodes.xai import node_xai
 from packages.agents.nodes.invoke_ml import (
     capture_baseline_scores,
     node_depth_map,
@@ -63,7 +64,7 @@ def build_agent_graph():
     g.add_node("depth", _wrap(node_depth_map))
     g.add_node("vuln", _wrap(node_predict_vulnerability))
     g.add_node("math", _wrap(node_invoke_math))
-    g.add_node("xai", _wrap(node_xai_stub))
+    g.add_node("xai", _wrap(node_xai))
     g.add_node("insight", _wrap(node_insight))
     g.add_node("governance", _wrap(node_governance))
 

@@ -27,12 +27,12 @@ router = APIRouter()
 
 class CreateRunRequest(BaseModel):
     portfolio_id: str
-    use_ml: bool = False
+    use_ml: Optional[bool] = True  # product default: ML required; false only if allow_prior_only
     hazard_model_version: Optional[str] = None
     vuln_model_version: Optional[str] = None
     d_max_m: Optional[float] = None
     assumptions_version: Optional[str] = None
-    use_osm: bool = False
+    use_osm: Optional[bool] = None  # None → settings.use_osm_default (off; never required)
     enable_freetext: bool = False
     freetext: Optional[str] = None
     require_human_gate_1: bool = False
@@ -56,6 +56,43 @@ def _profile_for_run(settings: SettingsDep, body: CreateRunRequest) -> Assumptio
     return AssumptionsProfile(**data)
 
 
+def _resolve_ml(
+    body: CreateRunRequest, settings: SettingsDep
+) -> tuple[bool, Optional[str], Optional[str], Optional[ModelRegistry]]:
+    """
+    Predictive ML is a required product stage.
+    Prior-only (use_ml=false) is rejected unless settings.allow_prior_only.
+    """
+    registry = ModelRegistry(settings.models_dir)
+    want_prior = body.use_ml is False and not (
+        body.hazard_model_version or body.vuln_model_version
+    )
+
+    if want_prior:
+        if settings.require_ml and not settings.allow_prior_only:
+            raise HTTPException(
+                status_code=400,
+                detail="Predictive ML is required for FLOODTAIL runs "
+                "(hazard + vulnerability models). Train/pin via POST /v1/models/*/train "
+                "or omit use_ml=false. Set ALLOW_PRIOR_ONLY=true only for offline debug.",
+            )
+        return False, None, None, None
+
+    haz_ver = body.hazard_model_version or registry.get_pinned("hazard")
+    vuln_ver = body.vuln_model_version or registry.get_pinned("vulnerability")
+    if haz_ver is None or vuln_ver is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Pinned hazard and vulnerability models are required "
+            "(python scripts/train_models.py or POST /v1/models/*/train).",
+        )
+    if not registry.verify_integrity("hazard", haz_ver):
+        raise HTTPException(status_code=400, detail="hazard model integrity failed")
+    if not registry.verify_integrity("vulnerability", vuln_ver):
+        raise HTTPException(status_code=400, detail="vulnerability model integrity failed")
+    return True, haz_ver, vuln_ver, registry
+
+
 @router.post("/runs")
 def create_run(
     body: CreateRunRequest,
@@ -73,30 +110,7 @@ def create_run(
         raise HTTPException(status_code=400, detail="portfolio has no exposure rows")
 
     profile = _profile_for_run(settings, body)
-    use_ml = bool(body.use_ml or body.hazard_model_version or body.vuln_model_version)
-    registry = ModelRegistry(settings.models_dir) if use_ml else None
-
-    if use_ml:
-        assert registry is not None
-        haz_ver = body.hazard_model_version
-        vuln_ver = body.vuln_model_version
-        if body.use_ml and haz_ver is None:
-            haz_ver = registry.get_pinned("hazard")
-        if body.use_ml and vuln_ver is None:
-            vuln_ver = registry.get_pinned("vulnerability")
-        if body.use_ml and (haz_ver is None or vuln_ver is None):
-            raise HTTPException(
-                status_code=400,
-                detail="use_ml=true requires pinned hazard and vulnerability models "
-                "(POST /v1/models/*/train first) or explicit versions.",
-            )
-        if haz_ver and not registry.verify_integrity("hazard", haz_ver):
-            raise HTTPException(status_code=400, detail="hazard model integrity failed")
-        if vuln_ver and not registry.verify_integrity("vulnerability", vuln_ver):
-            raise HTTPException(status_code=400, detail="vulnerability model integrity failed")
-    else:
-        haz_ver = None
-        vuln_ver = None
+    use_ml, haz_ver, vuln_ver, registry = _resolve_ml(body, settings)
 
     config = RunConfig(
         portfolio_id=body.portfolio_id,
@@ -118,7 +132,8 @@ def create_run(
     hotspots = default_hotspots_frame(
         settings.nairobi_data_dir / settings.hotspots_filename
     )
-    use_osm = body.use_osm or settings.use_osm_default
+    # OSM is never required: opt-in only; Overpass failure degrades inside enrich_frame.
+    use_osm = settings.use_osm_default if body.use_osm is None else bool(body.use_osm)
 
     append_audit(
         "run_started",

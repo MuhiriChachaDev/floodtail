@@ -78,11 +78,19 @@ def generate_insight(
     ollama_host: str,
     ollama_model: str,
     force_down: bool = False,
+    allowlist: Optional[dict[str, Any]] = None,
 ) -> tuple[InsightPackage, bool, list[str]]:
     """
     Produce InsightPackage. Returns (insight, used_template, warnings).
+    Prefer a pre-built allowlist (e.g. after in-graph XAI) when provided.
     """
-    allowlist = get_allowlist(metrics)
+    base = get_allowlist(metrics)
+    if allowlist:
+        merged = dict(allowlist)
+        merged.update(base)
+        allowlist = merged
+    else:
+        allowlist = base
     warnings: list[str] = []
 
     if force_down:
@@ -101,6 +109,8 @@ def generate_insight(
         "Using ONLY the allowlisted numbers below, produce a JSON object with keys: "
         "recommendation (ACCEPT|REVIEW|ESCALATE), why (1-3 strings), "
         "next_steps (1-3 strings), narrative (short prose citing allowlisted KES only).\n"
+        "If shap_hazard_top_features or shap_vulnerability_top_features are present, "
+        "mention them as model drivers (not as invented money figures).\n"
         f"ALLOWLIST:\n{json.dumps(allowlist, default=str)}\n"
         "Do not invent any KES figures not present in the allowlist."
     )
@@ -154,6 +164,7 @@ def node_insight(state: AgentGraphState) -> AgentGraphState:
         ollama_host=state.get("ollama_host") or "http://localhost:11434",
         ollama_model=state.get("ollama_model") or "qwen2.5:3b-instruct",
         force_down=bool(state.get("force_ollama_down")),
+        allowlist=state.get("allowlist"),
     )
     allowlist = insight.allowlist or get_allowlist(metrics)
     audit = append_audit(

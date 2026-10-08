@@ -116,6 +116,26 @@ def get_allowlist(metrics: MetricsPayload) -> dict[str, Any]:
             allow["aal_delta_kes"] = metrics.baseline_delta["aal_delta_kes"]
         if "baseline_aal_kes" in metrics.baseline_delta:
             allow["baseline_aal_kes"] = metrics.baseline_delta["baseline_aal_kes"]
+    enrich = (metrics.accumulation_summary or {}).get("enrichment") or {}
+    if enrich:
+        allow["enrichment"] = enrich
+    xai = metrics.xai_summary or {}
+    if xai:
+        allow["xai_disclaimer"] = xai.get("disclaimer")
+        haz = xai.get("hazard_global") or {}
+        vuln = xai.get("vulnerability_global") or {}
+        if haz.get("top_features"):
+            allow["shap_hazard_top_features"] = haz["top_features"]
+        if vuln.get("top_features"):
+            allow["shap_vulnerability_top_features"] = vuln["top_features"]
+        sample = xai.get("sample_local") or {}
+        if sample.get("loc_id"):
+            allow["shap_sample_loc_id"] = sample["loc_id"]
+            allow["shap_sample_prediction"] = sample.get("prediction")
+            feats = sample.get("top_features") or []
+            allow["shap_sample_top_features"] = [
+                f.get("feature") for f in feats if isinstance(f, dict) and f.get("feature")
+            ]
     return allow
 
 

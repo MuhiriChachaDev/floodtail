@@ -48,7 +48,12 @@ class Settings(BaseSettings):
     ollama_host: str = "http://localhost:11434"
     ollama_primary_model: str = "qwen2.5:3b-instruct"
 
-    # Optional OSM enrichment (Overpass) — disabled by default for offline flexibility
+    # Predictive ML is a required product stage (hazard + vulnerability).
+    # Prior-only is allowed only when allow_prior_only=true (tests / offline debug).
+    require_ml: bool = True
+    allow_prior_only: bool = False
+
+    # Optional OSM enrichment (Overpass) — off by default; never required for a run
     overpass_url: str = "https://overpass-api.de/api/interpreter"
     use_osm_default: bool = False
     hotspots_filename: str = "nairobi_hotspots_geocoded.csv"

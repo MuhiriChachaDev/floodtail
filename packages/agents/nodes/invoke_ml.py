@@ -1,4 +1,4 @@
-"""Stages 4–5 — PredictHazard / PredictVulnerability (critical when ML enabled)."""
+"""Stages 4–5 — PredictHazard / PredictVulnerability (required product ML stages)."""
 
 from __future__ import annotations
 

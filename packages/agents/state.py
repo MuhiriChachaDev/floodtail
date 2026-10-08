@@ -75,7 +75,7 @@ def new_state(**kwargs: Any) -> AgentGraphState:
         "enable_freetext": False,
         "freetext": None,
         "require_human_gate_1": False,
-        "use_ml": False,
+        "use_ml": True,
         "use_osm": False,
         "overpass_url": "https://overpass-api.de/api/interpreter",
         "narrative": "",

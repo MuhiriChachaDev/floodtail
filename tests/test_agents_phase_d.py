@@ -121,19 +121,27 @@ def test_freetext_node_rejects_bad_schema(nairobi_frame: pd.DataFrame) -> None:
 
 
 def test_graph_completes_with_ollama_mocked_down(nairobi_frame: pd.DataFrame) -> None:
+    from packages.ml.registry import ModelRegistry
+
     settings = get_settings()
     profile = settings.assumptions_profile()
+    registry = ModelRegistry(settings.models_dir)
     result = run_agent_graph(
         nairobi_frame,
         profile,
         run_id="r-graph",
         portfolio_id="p-graph",
         location_label="Nairobi County",
-        use_ml=False,
+        use_ml=True,
+        hazard_model_version=registry.get_pinned("hazard"),
+        vuln_model_version=registry.get_pinned("vulnerability"),
+        registry=registry,
         force_ollama_down=True,
     )
     assert result.status == "COMPLETED"
     assert result.metrics is not None
+    assert result.metrics.hazard_model_version
+    assert result.metrics.vuln_model_version
     assert result.insight is not None
     assert result.insight.numbers_source == "template"
     assert result.insight.insured_houses == 600
@@ -141,6 +149,8 @@ def test_graph_completes_with_ollama_mocked_down(nairobi_frame: pd.DataFrame) ->
     assert result.ollama_degraded is True
     stage_names = [s.stage for s in result.stages]
     assert "schema_map" in stage_names
+    assert "predict_hazard" in stage_names
+    assert "predict_vulnerability" in stage_names
     assert "ep_capital" in stage_names
     assert "insight" in stage_names
     assert "governance" in stage_names
@@ -175,14 +185,16 @@ def test_api_run_insight_narrative_query_approve() -> None:
     assert r.status_code == 200
     pid = r.json()["portfolio"]["id"]
 
-    # Run with Ollama forced down → template insight
+    # Run with ML required + Ollama forced down → template insight over ML metrics
     r = client.post(
         "/v1/runs",
-        json={"portfolio_id": pid, "use_ml": False, "force_ollama_down": True},
+        json={"portfolio_id": pid, "force_ollama_down": True},
     )
     assert r.status_code == 200, r.text
     body = r.json()
     run_id = body["run"]["id"]
+    assert body["metrics"]["hazard_model_version"]
+    assert body["metrics"]["vuln_model_version"]
     insight = body["insight"]
     assert insight["insured_houses"] == 600
     assert insight["set_aside"]["floor_kes"] <= insight["set_aside"]["ceiling_kes"]
