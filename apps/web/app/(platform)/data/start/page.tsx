@@ -317,7 +317,7 @@ export default function DataStartPage() {
         }
       />
 
-      <div className="glass rounded-2xl p-6">
+        <div className="glass rounded-2xl p-4 sm:p-6">
           <h2 className="section-title mb-4">Upload & deliver</h2>
 
           <fieldset className="mb-4">
