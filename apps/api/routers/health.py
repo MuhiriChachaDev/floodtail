@@ -57,7 +57,7 @@ def health() -> dict:
         "env": settings.env,
         "phase": "F-e2e-hardening",
         "streamlit": "removed",
-        "frontend": "apps/web (empty Next.js scaffold — out of scope for backend track)",
+        "frontend": "apps/web (Next.js — deploy on Vercel; API on Contabo)",
         "nairobi_data": str(nairobi),
         "nairobi_data_ok": len(missing) == 0,
         "missing_files": missing,

@@ -18,6 +18,15 @@ build/
 .env
 .env.*
 !.env.example
+!apps/web/.env.example
+!.env.production.example
+!infra/prod/.env.example
+.env.prod
+docker-compose.tls.override.yml
+
+# TLS private material (keep directory)
+infra/nginx/certs/*
+!infra/nginx/certs/.gitkeep
 
 # IDE / OS
 .vscode/
@@ -30,6 +39,7 @@ Thumbs.db
 # Logs / temp
 *.log
 data/processed/
+data/store/
 data/*.db
 *.db
 

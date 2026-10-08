@@ -75,15 +75,19 @@ def node_predict_vulnerability(state: AgentGraphState) -> AgentGraphState:
     profile = state["profile"]
     work = state["frame"]
     use_ml = bool(state.get("use_ml") or state.get("vuln_model_version"))
+    curves = profile.resolved_vulnerability_curves()
     if not use_ml:
-        work = add_damage_ratio_columns(work, profile.tier_names)
+        work = add_damage_ratio_columns(work, profile.tier_names, curves=curves)
         out = dict(state)
         out["frame"] = work
         return append_stage(
             out,  # type: ignore[arg-type]
             stage="predict_vulnerability",
             status=StageStatus.SKIPPED,
-            message="Using JRC-adapted vulnerability priors (no ML)",
+            message=(
+                f"Using pluggable vulnerability priors ({len(curves)} classes; no ML)"
+            ),
+            data={"housing_classes": sorted(curves.keys())},
             critical=False,
         )
 
@@ -97,7 +101,7 @@ def node_predict_vulnerability(state: AgentGraphState) -> AgentGraphState:
             critical=True,
         )
     try:
-        prior = add_damage_ratio_columns(work, profile.tier_names)
+        prior = add_damage_ratio_columns(work, profile.tier_names, curves=curves)
         for tier in profile.tier_names:
             work[f"damage_ratio_prior_{tier}"] = prior[f"damage_ratio_{tier}"]
         work, lineage = run_vuln_infer(

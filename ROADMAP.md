@@ -15,11 +15,11 @@
 | ------------------------------------------ | ---------------------------------------------------------------------- |
 | Streamlit (`app.py`, `ui/`)                | **Removed**                                                            |
 | FastAPI backend (`apps/api`)               | **Done through Phase F** — portfolios/runs/ML/insight/XAI/security/E2E |
-| Next.js empty scaffold (`apps/web`)        | **Done** — placeholder only; product UI is Phase 5 / out of backend F  |
+| Next.js UI (`apps/web`)                    | **In place** — Kenya Re screens (data/risk/finance/decisions/AI)       |
 | Packages (`cat_core`, `ml`, `agents`, …)   | **Done** — grounded math + ML + LangGraph + security                   |
 | Docs rewritten for Nairobi                 | **Done** — ASSUMPTIONS capital band + insight-first DEMO_SCRIPT        |
 | Deterministic CAT / ML / agents / security | **Done** (legacy `src/` still present for reference until P6 archive)  |
-| Hackathon UI (EP curve, etc.)              | **Not started** (API/OpenAPI demo covers underwriter insight)          |
+| Audit gap fixes (AAL caveat, schema_map, pluggable curves, raster sample, file store, MC band) | **Done** |
 
 
 ---

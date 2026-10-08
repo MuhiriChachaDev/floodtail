@@ -50,6 +50,7 @@ Do not upgrade status without evidence in this register.
 | H1 | Five severity tiers: common, occasional, moderate, severe, extreme | SUPPLIED | Columns + matching GeoTIFFs |
 | H2 | Proxy rasters / CSV scores ∈ [0, 1] = relative susceptibility, not metres | SUPPLIED | `Nairobi_Data/nairobi_pluvial_proxy_*.tif` |
 | H3 | Depth mapping: `depth_m = hazard_score_pred × D_max` | PROTOTYPE | Linear; no stage-discharge |
+| H10 | Missing `hazard_score_*` filled with 0.0 + `HAZARD_ZERO_FILL` warning | SUPPLIED | Optional GeoTIFF sample on upload (`SAMPLE_RASTERS_ON_UPLOAD`) |
 | H4 | `D_max = 4.0 m` | PROTOTYPE | Documented default; configurable |
 | H5 | Return-period map (see table below) | PROTOTYPE | Discrete EP; not a stochastic catalogue |
 | H6 | 24 named hotspots from government lists (geocoded) | SUPPLIED | `nairobi_hotspots_geocoded.csv` |
@@ -86,7 +87,10 @@ Do not upgrade status without evidence in this register.
 |----|------------|--------|-------|
 | F1 | `ground_up_loss = damage_ratio × tiv_kes` | SUPPLIED | Multiply is deterministic |
 | F2 | EP curve from discrete tier losses + RP map | PROTOTYPE | Not 10k-year Kenya Monte Carlo |
-| F3 | AAL ≈ Σ (AEP_tier × tier_portfolio_loss) over discrete RPs | PROTOTYPE | Documented discrete approximation |
+| F3 | AAL ≈ Σ (AEP_tier × tier_portfolio_loss) over discrete RPs | PROTOTYPE | **Not** vendor stochastic AAL; stamped on every `MetricsPayload` as `aal_method` / `aal_caveat` |
+| F8 | Optional light MC band = damage-ratio noise around discrete AAL | PROTOTYPE | `monte_carlo.enabled`; sensitivity only — not a flood catalogue |
+| F9 | Vulnerability curves pluggable via `AssumptionsProfile.vulnerability_curves` | PROTOTYPE | Merged on top of JRC pack; new housing classes require curve points |
+| F10 | Portfolio/run store: `memory` (default) or durable `file` under `STORE_ROOT` | PROTOTYPE | Set `STORE_BACKEND=file` for restart survival |
 | F4 | LLM never emits loss / EP / AAL / premium | SUPPLIED | Hard boundary + output allowlist |
 | F5 | Optional light MC only for uncertainty bands | PROTOTYPE | Not product core |
 | F6 | Single-layer XL: `recovery = min(limit, max(0, gross − attachment))`; `net = gross − recovery` | PROTOTYPE | Default attachment 5% TIV, limit 15% TIV; not a multi-layer programme |

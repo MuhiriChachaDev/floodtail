@@ -28,6 +28,16 @@ class Recommendation(str, Enum):
     ESCALATE = "ESCALATE"
 
 
+# Canonical caveat for discrete-tier AAL (not a stochastic catalogue mean).
+AAL_METHOD_DISCRETE = "discrete_ep_sum"
+AAL_CAVEAT_DISCRETE = (
+    "AAL ≈ Σ(AEP_tier × tier_portfolio_loss) over a discrete return-period map. "
+    "This is a PROTOTYPE approximation — not the mean of a stochastic year-loss "
+    "catalogue used by vendor CAT models (Verisk / Moody’s RMS / etc.). "
+    "Do not treat as underwriting-grade AAL without recalibration."
+)
+
+
 class DataLabels(BaseModel):
     """Honesty labels attached to every metrics / insight payload."""
 
@@ -36,6 +46,8 @@ class DataLabels(BaseModel):
     assumed_rp: bool = True
     d_max_m: float = 4.0
     location_flexible: bool = True
+    aal_method: str = AAL_METHOD_DISCRETE
+    aal_caveat: str = AAL_CAVEAT_DISCRETE
     notes: list[str] = Field(default_factory=list)
 
 
@@ -166,6 +178,20 @@ class PricingIndication(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class AALUncertaintyBand(BaseModel):
+    """Optional light Monte Carlo band around discrete AAL (PROTOTYPE)."""
+
+    method: str = "damage_ratio_noise_mc"
+    n_sims: int = 0
+    seed: int = 0
+    aal_mean_kes: float = 0.0
+    aal_p05_kes: float = 0.0
+    aal_p50_kes: float = 0.0
+    aal_p95_kes: float = 0.0
+    noise_sigma: float = 0.0
+    notes: list[str] = Field(default_factory=list)
+
+
 class MetricsPayload(BaseModel):
     """Grounded run metrics — sole source of money numbers for agents."""
 
@@ -179,6 +205,9 @@ class MetricsPayload(BaseModel):
     tier_losses: list[TierLoss] = Field(default_factory=list)
     ep_curve: list[EPPoint] = Field(default_factory=list)
     aal_kes: float = 0.0
+    aal_method: str = AAL_METHOD_DISCRETE
+    aal_caveat: str = AAL_CAVEAT_DISCRETE
+    aal_uncertainty: Optional[AALUncertaintyBand] = None
     capital_band: Optional[CapitalBand] = None
     financial: Optional[FinancialView] = None
     pricing: Optional[PricingIndication] = None

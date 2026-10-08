@@ -21,7 +21,7 @@ export default function AiControlPage() {
         setOllama("API offline — demo mode");
         return;
       }
-      setOllama(h.ollama?.available ? "Online" : "Unavailable (templates used)");
+      setOllama(h.ollama_up ? "Online" : "Unavailable (templates used)");
     });
   }, []);
 

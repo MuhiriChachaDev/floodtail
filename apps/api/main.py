@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.routers import (
     audit,
+    auth,
     explanations,
     health,
     insight,
@@ -19,8 +22,18 @@ from apps.api.routers import (
     vulnerability,
 )
 from apps.api.settings import get_settings
+from apps.api.store import init_store
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    settings = get_settings()
+    init_store(backend=settings.store_backend, root=settings.store_root)
+    yield
+
 
 _settings = get_settings()
+_show_docs = _settings.docs_enabled
 
 app = FastAPI(
     title="FLOODTAIL Flood CAT API",
@@ -30,19 +43,31 @@ app = FastAPI(
         "Agentic LangGraph orchestration + predictive ML + grounded EP/capital math. "
         "Phase F: E2E hardening — health/registry readiness, integration test, insight demo."
     ),
+    docs_url="/docs" if _show_docs else None,
+    redoc_url="/redoc" if _show_docs else None,
+    openapi_url="/openapi.json" if _show_docs else None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+    allow_origins=_settings.parsed_cors_origins(),
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Accept",
+        "Authorization",
+        "Content-Type",
+        "X-Floodtail-Role",
+        "X-Floodtail-Actor",
+        "X-Floodtail-Tenant",
+        "X-Request-Id",
     ],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    max_age=600,
 )
 
 app.include_router(health.router, prefix="/v1", tags=["health"])
+app.include_router(auth.router, prefix="/v1", tags=["auth"])
 app.include_router(portfolios.router, prefix="/v1", tags=["portfolios"])
 app.include_router(runs.router, prefix="/v1", tags=["runs"])
 app.include_router(insight.router, prefix="/v1", tags=["insight"])

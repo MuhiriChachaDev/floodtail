@@ -1,0 +1,90 @@
+# Production stack for Contabo VPS (API + Postgres + Ollama + Nginx).
+#
+# First boot (no TLS yet):
+#   cp infra/prod/.env.example .env.prod   # edit secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# After Certbot (see DEPLOYMENT.md): switch nginx mount to floodtail.conf
+
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-floodtail}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-floodtail}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-pgvector.sql:/docker-entrypoint-initdb.d/01-pgvector.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-floodtail}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - floodtail_internal
+    # Postgres is internal-only — never publish 5432 publicly.
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - floodtail_internal
+    # ≥8 GB RAM Contabo plan recommended (16 GB with embeddings + ML).
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      # Override via .env.prod (ENV=prototype allows header-only demo auth)
+      ENV: ${ENV:-production}
+      OLLAMA_HOST: http://ollama:11434
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      ENABLE_DOCS: ${ENABLE_DOCS:-false}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
+    volumes:
+      # Persist / seed trained hazard + vulnerability artifacts on the host
+      - ./models:/app/models
+      - api_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - floodtail_internal
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Swap to floodtail.conf after TLS certs are installed
+      - ./infra/nginx/floodtail.http-only.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - api
+    networks:
+      - floodtail_internal
+
+volumes:
+  pg_data:
+  ollama_data:
+  api_data:
+  certbot_www:
+
+networks:
+  floodtail_internal:
+    driver: bridge

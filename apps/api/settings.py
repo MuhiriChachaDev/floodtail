@@ -11,6 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from packages.cat_core.assumptions import (
     AssumptionsProfile,
     CapitalPolicy,
+    MonteCarloPolicy,
     PricingPolicy,
     TreatyPolicy,
 )
@@ -34,6 +35,14 @@ class Settings(BaseSettings):
 
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+
+    # Comma-separated browser origins allowed to call the API (no * in production).
+    # Example: https://floodtail.vercel.app,https://floodtail-git-main.vercel.app
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # OpenAPI /docs. None = on in non-prod, off in production.
+    # Set ENABLE_DOCS=true|false to override.
+    enable_docs: bool | None = None
 
     # Paths
     project_root: Path = _ROOT
@@ -69,6 +78,19 @@ class Settings(BaseSettings):
     use_osm_default: bool = False
     hotspots_filename: str = "nairobi_hotspots_geocoded.csv"
 
+    # Sample GeoTIFF hazard when uploaded CSV lacks hazard_score_* (needs rasterio)
+    sample_rasters_on_upload: bool = True
+
+    # Durable portfolio/run store: memory | file
+    store_backend: Literal["memory", "file"] = "memory"
+    store_root: Path = _ROOT / "data" / "store"
+
+    # Optional light MC band around discrete AAL
+    mc_aal_enabled: bool = False
+    mc_aal_n_sims: int = 200
+    mc_aal_noise_sigma: float = 0.08
+    mc_aal_seed: int = 42
+
     # JWT / Keycloak (wired in Phase E)
     keycloak_url: str = "http://localhost:8080"
     keycloak_realm: str = "floodtail"
@@ -100,6 +122,24 @@ class Settings(BaseSettings):
         parts = [p.strip() for p in self.return_periods.split(",") if p.strip()]
         return [int(p) for p in parts]
 
+    def parsed_cors_origins(self) -> list[str]:
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if self.env == "production" and ("*" in origins or not origins):
+            raise ValueError(
+                "CORS_ORIGINS must be an explicit allowlist in production (no '*')"
+            )
+        return origins
+
+    @property
+    def is_production(self) -> bool:
+        return self.env == "production"
+
+    @property
+    def docs_enabled(self) -> bool:
+        if self.enable_docs is not None:
+            return self.enable_docs
+        return not self.is_production
+
     def assumptions_profile(self) -> AssumptionsProfile:
         return AssumptionsProfile(
             assumptions_version=self.assumptions_version,
@@ -119,6 +159,12 @@ class Settings(BaseSettings):
             pricing=PricingPolicy(
                 default_load_factor=self.pricing_default_load_factor,
                 currency=self.capital_currency,
+            ),
+            monte_carlo=MonteCarloPolicy(
+                enabled=self.mc_aal_enabled,
+                n_sims=self.mc_aal_n_sims,
+                noise_sigma=self.mc_aal_noise_sigma,
+                seed=self.mc_aal_seed,
             ),
         )
 

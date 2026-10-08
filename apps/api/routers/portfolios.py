@@ -16,6 +16,7 @@ from apps.api.deps import (
     enforce_tenant,
 )
 from packages.agents.tools.audit_tools import append_audit
+from packages.agents.tools.portfolio_tools import schema_map
 from packages.cat_core.exceptions import ExposureDQError
 from packages.cat_core.exposure import (
     builtin_nairobi_path,
@@ -23,6 +24,7 @@ from packages.cat_core.exposure import (
     load_exposure_csv,
     validate_and_normalize,
 )
+from packages.cat_core.raster_hazard import fill_hazard_from_data_dir
 from packages.cat_core.types import Portfolio
 
 router = APIRouter()
@@ -36,6 +38,7 @@ async def create_portfolio(
     source: str = Form(default="builtin_nairobi"),
     location_label: Optional[str] = Form(default=None),
     name: Optional[str] = Form(default=None),
+    sample_rasters: Optional[bool] = Form(default=None),
     file: Optional[UploadFile] = File(default=None),
 ) -> dict:
     """
@@ -45,11 +48,16 @@ async def create_portfolio(
     - source: `builtin_nairobi` | `upload`
     - location_label: optional label (default Nairobi / upload)
     - name: optional display name
+    - sample_rasters: when true (default from settings), fill missing hazard_score_*
+      from GeoTIFFs under Nairobi_Data (requires rasterio)
     - file: CSV when source=upload
+
+    Upload CSVs are schema-mapped (lat/longitude/tiv/occupancy aliases accepted).
     """
     enforce_permission(ctx, "portfolio:write")
     profile = settings.assumptions_profile()
     pid = store.create_portfolio_id()
+    column_mapping: dict = {}
 
     try:
         if source == "builtin_nairobi":
@@ -75,13 +83,34 @@ async def create_portfolio(
                 detail="source must be builtin_nairobi or upload",
             )
 
+        # Always schema-map so foreign CSVs (latitude/tiv_usd/occupancy) work
+        mapped, column_mapping, map_warnings = schema_map(raw)
         frame, stats, warnings = validate_and_normalize(
-            raw,
+            mapped,
             profile,
             location_label=loc,
             source=src,
             force_synthetic=True,
         )
+        warnings = list(map_warnings) + list(warnings)
+
+        do_sample = (
+            settings.sample_rasters_on_upload
+            if sample_rasters is None
+            else bool(sample_rasters)
+        )
+        if do_sample and any("HAZARD_ZERO_FILL" in w for w in warnings):
+            frame, raster_warns = fill_hazard_from_data_dir(
+                frame,
+                settings.nairobi_data_dir,
+                list(profile.tier_names),
+                only_missing_or_zero=True,
+            )
+            warnings.extend(raster_warns)
+            # Recompute stats after scores change
+            from packages.cat_core.exposure import compute_ingest_stats
+
+            stats = compute_ingest_stats(frame, location_label=loc, source=src)
     except ExposureDQError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except HTTPException:
@@ -101,7 +130,7 @@ async def create_portfolio(
         ingest_stats=stats,
         assumptions_version=profile.assumptions_version,
         data_labels=labels,
-        extra={"warnings": warnings},
+        extra={"warnings": warnings, "column_mapping": column_mapping},
     )
     store.save_portfolio(portfolio, frame)
     append_audit(
@@ -113,11 +142,13 @@ async def create_portfolio(
             "actor": ctx.actor,
             "role": ctx.role,
             "tenant_id": ctx.tenant_id,
+            "column_mapping": column_mapping,
         },
     )
     return {
         "portfolio": portfolio.model_dump(mode="json"),
         "warnings": warnings,
+        "column_mapping": column_mapping,
     }
 
 
