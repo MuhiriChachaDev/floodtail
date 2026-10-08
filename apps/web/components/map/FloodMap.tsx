@@ -40,6 +40,7 @@ export function FloodMap({
   title = "Flood risk map",
 }: Props) {
   const [insuredOnly, setInsuredOnly] = useState(true);
+  const [basemap, setBasemap] = useState<"streets" | "satellite">("streets");
   const [playing, setPlaying] = useState(false);
   const [hour, setHour] = useState(8);
   const [selected, setSelected] = useState<string | null>(null);
@@ -89,7 +90,9 @@ export function FloodMap({
 
       <div className="map-shell relative h-[380px] sm:h-[460px]">
         <LeafletMap
+          key={basemap}
           mode={mode}
+          basemap={basemap}
           points={points}
           hotspots={portfolio.hotspots}
           selectedId={selected}
@@ -106,6 +109,33 @@ export function FloodMap({
             <p>1.5 m</p>
             <p>&lt; 0.5 m</p>
           </div>
+        </div>
+
+        <div className="absolute left-3 top-3 z-[500] flex gap-2">
+          <button
+            type="button"
+            onClick={() => setBasemap("streets")}
+            className={clsx(
+              "rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur",
+              basemap === "streets"
+                ? "bg-accent text-night-950"
+                : "border border-white/15 bg-night-950/70 text-white/70",
+            )}
+          >
+            Streets
+          </button>
+          <button
+            type="button"
+            onClick={() => setBasemap("satellite")}
+            className={clsx(
+              "rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur",
+              basemap === "satellite"
+                ? "bg-accent text-night-950"
+                : "border border-white/15 bg-night-950/70 text-white/70",
+            )}
+          >
+            Satellite
+          </button>
         </div>
 
         <div className="absolute bottom-3 left-3 z-[500] flex gap-2">

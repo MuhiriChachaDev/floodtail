@@ -30,8 +30,11 @@ type Point = {
 
 type Hotspot = { name: string; lat: number; lon: number };
 
+export type BasemapStyle = "streets" | "satellite";
+
 type Props = {
   mode: MapMode;
+  basemap?: BasemapStyle;
   points: Point[];
   hotspots: Hotspot[];
   selectedId: string | null;
@@ -41,7 +44,8 @@ type Props = {
 function FitNairobi() {
   const map = useMap();
   useEffect(() => {
-    map.setView([-1.286389, 36.817223], 11);
+    // Zoom 13 shows roads and urban blocks; zoom 11 is mostly bare land.
+    map.setView([-1.286389, 36.817223], 13);
   }, [map]);
   return null;
 }
@@ -71,6 +75,7 @@ function depthColor(depth: number): string {
 
 export default function LeafletInner({
   mode,
+  basemap = "streets",
   points,
   hotspots,
   selectedId,
@@ -91,15 +96,41 @@ export default function LeafletInner({
   return (
     <MapContainer
       center={[-1.286389, 36.817223]}
-      zoom={11}
+      zoom={13}
+      minZoom={10}
+      maxZoom={18}
       scrollWheelZoom
       className="h-full w-full"
     >
       <FitNairobi />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      />
+      {basemap === "streets" ? (
+        <>
+          {/* Streets / urban layout — roads, neighbourhoods, building blocks (no API key). */}
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+          />
+        </>
+      ) : (
+        <>
+          {/* Satellite + road / place labels */}
+          <TileLayer
+            attribution="Tiles &copy; Esri"
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+            opacity={0.95}
+          />
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+        </>
+      )}
 
       {(mode === "overview" || mode === "hazard" || mode === "loss" || mode === "risk") &&
         floodCircles.map((p) => (
