@@ -74,48 +74,54 @@ a {
     @apply w-full rounded-xl border border-white/15 bg-night-950/60 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-accent/60 focus:ring-2 focus:ring-accent/20;
   }
 
-  .map-shell .leaflet-container {
+  .map-shell .maplibregl-map {
     width: 100%;
     height: 100%;
     background: #0a1628;
     font: inherit;
   }
 
-  .map-shell .leaflet-control-zoom a {
+  .map-shell .maplibregl-ctrl-group {
     background: rgba(6, 16, 28, 0.92) !important;
-    color: #edf4ff !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
-  }
-
-  .map-shell .leaflet-bar {
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   }
+
+  .map-shell .maplibregl-ctrl-group button {
+    background-color: transparent !important;
+  }
+
+  .map-shell .maplibregl-ctrl-group button + button {
+    border-top-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .map-shell .maplibregl-ctrl button.maplibregl-ctrl-zoom-in,
+  .map-shell .maplibregl-ctrl button.maplibregl-ctrl-zoom-out,
+  .map-shell .maplibregl-ctrl button.maplibregl-ctrl-compass {
+    filter: invert(1) brightness(1.4);
+  }
+
+  .map-shell .maplibregl-ctrl-attrib {
+    background: rgba(6, 16, 28, 0.65) !important;
+    color: rgba(255, 255, 255, 0.55) !important;
+  }
+
+  .map-shell .maplibregl-ctrl-attrib a {
+    color: rgba(125, 211, 252, 0.9) !important;
+  }
 }
 
-/* Custom map markers */
-.ft-marker {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(255, 255, 255, 0.65);
-  background: rgba(6, 16, 28, 0.9);
-  font-size: 14px;
-  line-height: 1;
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+/* MapLibre hover popup */
+.ft-map-popup .maplibregl-popup-content {
+  background: rgba(6, 16, 28, 0.94);
+  color: #edf4ff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
 }
 
-.ft-marker--hotspot {
-  width: 34px;
-  height: 34px;
-  border-color: #fb7185;
-  box-shadow: 0 0 18px rgba(251, 113, 133, 0.55);
-  animation: pulseSoft 2.4s ease-in-out infinite;
-}
-
-.ft-marker--dim {
-  opacity: 0.45;
-  box-shadow: none;
+.ft-map-popup .maplibregl-popup-tip {
+  border-top-color: rgba(6, 16, 28, 0.94);
 }

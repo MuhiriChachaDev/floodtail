@@ -6,9 +6,11 @@ import { ModuleCards } from "@/components/home/ModuleCards";
 import { PortfolioGlance } from "@/components/home/PortfolioGlance";
 import { LearningLoop } from "@/components/home/LearningLoop";
 import { FloodMap } from "@/components/map/FloodMap";
-import { DEMO } from "@/lib/demo";
+import { useLivePortfolioView } from "@/lib/live-view";
 
 export default function HomePage() {
+  const view = useLivePortfolioView();
+
   return (
     <div className="space-y-8">
       <Hero />
@@ -24,8 +26,8 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="chip text-amber-200">{DEMO.risk.floodStatus}</span>
-            <span className="chip">{DEMO.freshness.weather}</span>
+            <span className="chip text-amber-200">{view.statusChip}</span>
+            <span className="chip">{view.weatherChip}</span>
           </div>
         </div>
 
@@ -41,10 +43,10 @@ export default function HomePage() {
               FLOODTAIL AI summary
             </h3>
             <p className="text-sm leading-relaxed text-white/70">
-              {DEMO.aiSummary}
+              {view.aiSummary}
             </p>
             <div className="mt-4 space-y-2">
-              {DEMO.attention.map((item) => (
+              {view.attention.map((item) => (
                 <Link
                   key={item.id}
                   href={item.href}

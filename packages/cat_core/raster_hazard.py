@@ -13,10 +13,15 @@ import numpy as np
 import pandas as pd
 
 from packages.cat_core.exposure import HAZARD_SCORE_PREFIX
+from packages.cat_core.geo_scope import select_overlapping_rasters
 
 
 def default_tier_raster_paths(data_dir: Path, tier_names: list[str]) -> dict[str, Path]:
-    """Map tier → Nairobi_Data/nairobi_pluvial_proxy_{tier}.tif when present."""
+    """Map tier → Nairobi_Data/nairobi_pluvial_proxy_{tier}.tif when present.
+
+    These are the *starter* Nairobi proxy rasters — callers must gate by geography
+    (see ``fill_hazard_from_data_dir``) so non-Nairobi portfolios are not sampled.
+    """
     out: dict[str, Path] = {}
     for tier in tier_names:
         path = data_dir / f"nairobi_pluvial_proxy_{tier}.tif"
@@ -113,11 +118,26 @@ def fill_hazard_from_data_dir(
     tier_names: list[str],
     *,
     only_missing_or_zero: bool = True,
+    require_overlap: bool = True,
 ) -> tuple[pd.DataFrame, list[str]]:
-    """Convenience: sample default Nairobi proxy TIFFs when present."""
+    """Sample starter Nairobi proxy TIFFs only when they cover this portfolio.
+
+    For Kisumu / Mombasa / other uploads outside the Nairobi raster footprint,
+    scores are left as CSV values (or zeros) with an explicit warning — never
+    silently stamped from an unrelated city's GeoTIFF.
+    """
     paths = default_tier_raster_paths(Path(data_dir), tier_names)
     if not paths:
         return df.copy(), ["No nairobi_pluvial_proxy_*.tif found under data_dir"]
-    return sample_hazard_rasters(
+
+    warnings: list[str] = []
+    if require_overlap:
+        paths, geo_warns = select_overlapping_rasters(df, paths)
+        warnings.extend(geo_warns)
+        if not paths:
+            return df.copy(), warnings
+
+    out, sample_warns = sample_hazard_rasters(
         df, paths, only_missing_or_zero=only_missing_or_zero
     )
+    return out, warnings + sample_warns

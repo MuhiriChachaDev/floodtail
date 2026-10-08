@@ -66,10 +66,7 @@ export function HeavyRainCallout({
         <span>
           Source: {source === "run" ? "latest test run metrics" : "demo figures"}
         </span>
-        <Link href="/risk/loss" className="text-accent hover:underline">
-          Loss modelling →
-        </Link>
-        <Link href="/finance/capital" className="text-accent hover:underline">
+        <Link href="/finance#capital" className="text-accent hover:underline">
           Capital view →
         </Link>
       </div>

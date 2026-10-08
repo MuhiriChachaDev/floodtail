@@ -28,6 +28,7 @@ export function NavDropdown({ group }: { group: NavGroup }) {
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const active = pathname.startsWith(`/${group.id}`);
+  const single = group.items.length === 1 ? group.items[0] : null;
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -36,6 +37,24 @@ export function NavDropdown({ group }: { group: NavGroup }) {
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
+
+  if (single) {
+    return (
+      <Link
+        href={single.href}
+        className={clsx(
+          "inline-flex items-center rounded-full px-3 py-1.5 text-sm transition",
+          active
+            ? "bg-white/10 text-white"
+            : "text-white/65 hover:bg-white/5 hover:text-white",
+        )}
+      >
+        <span className={clsx("font-medium", colorMap[group.color])}>
+          {group.label}
+        </span>
+      </Link>
+    );
+  }
 
   return (
     <div className="relative" ref={ref}>

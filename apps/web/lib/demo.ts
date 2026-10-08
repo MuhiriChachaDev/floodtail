@@ -29,7 +29,7 @@ export const DEMO = {
       id: "att-2",
       title: "Eastlands concentration rising",
       detail: "More covered value sits in known flood-prone areas.",
-      href: "/risk/analytics",
+      href: "/finance#capital",
       tone: "info" as const,
     },
     {

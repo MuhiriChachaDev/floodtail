@@ -4,17 +4,21 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { FloodMap } from "@/components/map/FloodMap";
 import { Notice } from "@/components/ui/Notice";
-
-const CHECKS = [
-  { label: "Completeness", value: "98%", ok: true },
-  { label: "Duplicates", value: "0 found", ok: true },
-  { label: "Invalid values", value: "2 fields", ok: false },
-  { label: "Location gaps", value: "3 properties", ok: false },
-  { label: "Geocoding", value: "597 / 600", ok: true },
-  { label: "Consistency", value: "Good", ok: true },
-];
+import { useLivePortfolioView } from "@/lib/live-view";
 
 export default function DataQualityPage() {
+  const view = useLivePortfolioView();
+  const checks = view.hasRun
+    ? view.qualityChecks
+    : [
+        { label: "Completeness", value: "Upload a portfolio", ok: false },
+        { label: "Duplicates", value: "—", ok: true },
+        { label: "Invalid values", value: "—", ok: true },
+        { label: "Location gaps", value: "—", ok: true },
+        { label: "Coordinates", value: "Waiting", ok: false },
+        { label: "Consistency", value: "—", ok: true },
+      ];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -24,12 +28,13 @@ export default function DataQualityPage() {
       />
 
       <Notice>
-        Icons on the map show building types. Dimmer markers need a second look —
-        the location or details are less certain.
+        {view.hasRun
+          ? `Checking the last upload for ${view.place}. Map columns use that portfolio’s coordinates.`
+          : "Icons on the map show building types. Upload a portfolio to replace the Nairobi demo."}
       </Notice>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {CHECKS.map((c) => (
+        {checks.map((c) => (
           <StatCard
             key={c.label}
             label={c.label}
@@ -49,10 +54,19 @@ export default function DataQualityPage() {
       <div className="glass rounded-2xl p-5 text-sm text-white/65">
         <p className="font-medium text-white">What “confidence” means here</p>
         <p className="mt-2">
-          High confidence: coordinates match the address and sit inside Nairobi.
-          Medium: placed by area name only. Low: missing or conflicting location —
-          do not treat those properties as precisely sited until confirmed.
+          High confidence: valid lat/lon on the uploaded rows
+          {view.hasRun ? ` for ${view.place}` : ""}. Medium: placed by area name
+          only. Low: missing or conflicting location — do not treat those
+          properties as precisely sited until confirmed. Geography follows the
+          portfolio bbox, not a fixed city.
         </p>
+        {view.last?.portfolio.extra?.warnings?.length ? (
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-amber-100/80">
+            {view.last.portfolio.extra.warnings.slice(0, 5).map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </div>
   );

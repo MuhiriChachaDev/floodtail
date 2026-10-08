@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   Coins,
   Database,
-  Network,
   Sparkles,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -13,7 +12,6 @@ import { MODULE_CARDS } from "@/lib/nav";
 
 const icons = {
   data: Database,
-  risk: Network,
   finance: Coins,
   decisions: Sparkles,
 };
@@ -23,11 +21,6 @@ const styles = {
     border: "border-data/35 hover:shadow-glow-blue",
     text: "text-data",
     soft: "bg-data-soft",
-  },
-  risk: {
-    border: "border-risk/35 hover:shadow-glow-teal",
-    text: "text-risk",
-    soft: "bg-risk-soft",
   },
   finance: {
     border: "border-finance/35 hover:shadow-glow-gold",
@@ -43,7 +36,7 @@ const styles = {
 
 export function ModuleCards() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {MODULE_CARDS.map((card, idx) => {
         const Icon = icons[card.id as keyof typeof icons];
         const s = styles[card.color];

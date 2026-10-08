@@ -6,7 +6,7 @@ import io
 from typing import Optional
 
 import pandas as pd
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 
 from apps.api.deps import (
     ContextDep,
@@ -160,6 +160,54 @@ def get_portfolio(portfolio_id: str, store: StoreDep, ctx: ContextDep) -> dict:
         raise HTTPException(status_code=404, detail="portfolio not found")
     enforce_tenant(portfolio, ctx)
     return {"portfolio": portfolio.model_dump(mode="json")}
+
+
+@router.get("/portfolios/{portfolio_id}/properties")
+def get_portfolio_properties(
+    portfolio_id: str,
+    store: StoreDep,
+    ctx: ContextDep,
+    limit: int = Query(default=600, ge=1, le=600),
+    offset: int = Query(default=0, ge=0),
+) -> dict:
+    """Raw exposure rows (lat/lon/TIV/hazard) for map & DQ — works before a run."""
+    enforce_permission(ctx, "portfolio:read")
+    portfolio = store.get_portfolio(portfolio_id)
+    if portfolio is None:
+        raise HTTPException(status_code=404, detail="portfolio not found")
+    enforce_tenant(portfolio, ctx)
+    frame = store.get_portfolio_frame(portfolio_id)
+    if frame is None or frame.empty:
+        raise HTTPException(status_code=404, detail="portfolio rows not available")
+
+    total = len(frame)
+    page = frame.iloc[offset : offset + limit]
+    cols = [
+        c
+        for c in [
+            "loc_id",
+            "lat",
+            "lon",
+            "housing_class",
+            "tiv_kes",
+            "synthetic",
+            "hazard_score_common",
+            "hazard_score_occasional",
+            "hazard_score_moderate",
+            "hazard_score_severe",
+            "hazard_score_extreme",
+        ]
+        if c in page.columns
+    ]
+    return {
+        "portfolio_id": portfolio_id,
+        "location_label": portfolio.location_label,
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "bbox": portfolio.ingest_stats.bbox if portfolio.ingest_stats else None,
+        "properties": page[cols].to_dict(orient="records"),
+    }
 
 
 @router.get("/portfolios")

@@ -18,6 +18,7 @@ from packages.agents.graph import run_agent_graph
 from packages.agents.tools.audit_tools import append_audit
 from packages.cat_core.assumptions import AssumptionsProfile
 from packages.cat_core.engine import default_hotspots_frame
+from packages.cat_core.geo_scope import hotspots_near_portfolio
 from packages.cat_core.types import DecisionRecord, Recommendation, RunConfig, utc_now
 from packages.ml.registry import ModelRegistry
 from packages.security.audit_log import get_audit_chain
@@ -142,9 +143,11 @@ def create_run(
     run.status = "RUNNING"
     store.save_run(run)
 
-    hotspots = default_hotspots_frame(
+    # Hotspots only when they fall near this portfolio (Kisumu ≠ Nairobi spots).
+    all_hotspots = default_hotspots_frame(
         settings.nairobi_data_dir / settings.hotspots_filename
     )
+    hotspots = hotspots_near_portfolio(all_hotspots, frame)
     # OSM is never required: opt-in only; Overpass failure degrades inside enrich_frame.
     use_osm = settings.use_osm_default if body.use_osm is None else bool(body.use_osm)
 
@@ -285,8 +288,13 @@ def get_properties(
             "loss_kes_moderate",
             "loss_kes_severe",
             "loss_kes_extreme",
+            "damage_ratio_severe",
             "damage_ratio_extreme",
+            "depth_m_severe",
             "depth_m_extreme",
+            "hazard_score_severe",
+            "hazard_score_extreme",
+            "hazard_score_pred_severe",
             "hazard_score_pred_extreme",
         ]
         if c in page.columns

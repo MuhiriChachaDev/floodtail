@@ -10,8 +10,7 @@ export function Hero() {
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1489392191049-fc10c97e64b6?auto=format&fit=crop&w=1800&q=80')",
+          backgroundImage: "url('/hero/flooded-city.jpg')",
         }}
       />
       <div className="absolute inset-0 bg-hero-wash" />
