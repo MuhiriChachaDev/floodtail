@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, ShieldCheck } from "lucide-react";
+import { FloodBackdrop } from "@/components/auth/FloodBackdrop";
 import { KenyaReLogo } from "@/components/brand/KenyaReLogo";
 import { useAuth, type Role } from "@/lib/auth";
 
@@ -37,16 +38,9 @@ export default function LoginPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
-      <div
-        className="absolute inset-0 bg-cover bg-center opacity-40"
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1611348523480-0d4a2c4f0f0e?auto=format&fit=crop&w=1800&q=80')",
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-night-950 via-night-950/95 to-night-800" />
+      <FloodBackdrop />
 
-      <div className="relative grid w-full max-w-5xl gap-8 lg:grid-cols-2">
+      <div className="relative z-10 grid w-full max-w-5xl gap-8 lg:grid-cols-2">
         <section className="hidden flex-col justify-center lg:flex">
           <KenyaReLogo variant="white" heightClass="h-12" priority />
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-accent">

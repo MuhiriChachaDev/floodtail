@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
+from pydantic import ValidationError
 
 from packages.cat_core.accumulation import build_accumulation_summary
 from packages.cat_core.assumptions import AssumptionsProfile
@@ -219,6 +220,37 @@ def get_allowlist(metrics: MetricsPayload) -> dict[str, Any]:
                 f.get("feature") for f in feats if isinstance(f, dict) and f.get("feature")
             ]
     return allow
+
+
+def allowlist_from_client_metrics(raw: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    Build a grounded allowlist from metrics JSON cached in the browser.
+
+    Used when the API store no longer has the run (in-memory restart) but the UI
+    still holds frozen metrics from the last portfolio test.
+    """
+    if not raw:
+        return {}
+    try:
+        metrics = MetricsPayload.model_validate(raw)
+        return get_allowlist(metrics)
+    except ValidationError:
+        allow: dict[str, Any] = {}
+        n = raw.get("n_insured_houses")
+        if n is not None:
+            allow["n_insured_houses"] = int(n)
+            allow["insured_houses"] = int(n)
+        for key in ("total_tiv_kes", "aal_kes", "location_label", "assumptions_version"):
+            if raw.get(key) is not None:
+                allow[key] = raw[key]
+        band = raw.get("capital_band")
+        if isinstance(band, dict):
+            try:
+                cb = CapitalBand.model_validate(band)
+                allow.update(allowlist_from_band(cb))
+            except ValidationError:
+                pass
+        return allow
 
 
 try:

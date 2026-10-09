@@ -39,6 +39,26 @@ def answer_query(
             "answer": "",
         }
 
+    q_norm = defence.sanitized.strip().lower()
+    if q_norm in {"hi", "hello", "hey", "hiya"} or q_norm.startswith(
+        ("hi ", "hello ", "hey ")
+    ):
+        answer = (
+            "Hello. I can help with Nairobi flood risk, run metrics (insured count, "
+            "AAL, TIV, capital set-aside), and knowledge-base documents. "
+            "Run a portfolio test first to ground money figures on your book."
+        )
+        sid = session_id or "default"
+        _persist_turn(tenant_id, sid, defence.sanitized, answer, False)
+        return {
+            "ok": True,
+            "blocked": False,
+            "answer": answer,
+            "source": "template_greeting",
+            "rag_used": False,
+            "memory_used": False,
+        }
+
     sid = session_id or "default"
     rag_context = ""
     memory_context = ""
@@ -63,34 +83,36 @@ def answer_query(
     q = defence.sanitized.lower()
     if "how many" in q and ("house" in q or "insured" in q or "location" in q):
         n = allowlist.get("n_insured_houses") or allowlist.get("insured_houses")
-        answer = f"There are {n} insured houses/locations in this run."
-        _persist_turn(tenant_id, sid, defence.sanitized, answer, use_memory)
-        return {
-            "ok": True,
-            "blocked": False,
-            "answer": answer,
-            "source": "tool_allowlist",
-            "rag_used": bool(rag_context),
-            "memory_used": bool(memory_context),
-        }
+        if n is not None:
+            answer = f"There are {n} insured houses/locations in this run."
+            _persist_turn(tenant_id, sid, defence.sanitized, answer, use_memory)
+            return {
+                "ok": True,
+                "blocked": False,
+                "answer": answer,
+                "source": "tool_allowlist",
+                "rag_used": bool(rag_context),
+                "memory_used": bool(memory_context),
+            }
     if "set aside" in q or "capital" in q or "floor" in q:
         floor = allowlist.get("set_aside_floor_kes")
         central = allowlist.get("set_aside_central_kes")
         ceiling = allowlist.get("set_aside_ceiling_kes")
-        answer = (
-            f"Set-aside band: floor KES {floor}, central KES {central}, "
-            f"ceiling KES {ceiling}."
-        )
-        _persist_turn(tenant_id, sid, defence.sanitized, answer, use_memory)
-        return {
-            "ok": True,
-            "blocked": False,
-            "answer": answer,
-            "source": "tool_allowlist",
-            "rag_used": bool(rag_context),
-            "memory_used": bool(memory_context),
-        }
-    if "aal" in q or "average annual" in q:
+        if floor is not None and central is not None and ceiling is not None:
+            answer = (
+                f"Set-aside band: floor KES {floor}, central KES {central}, "
+                f"ceiling KES {ceiling}."
+            )
+            _persist_turn(tenant_id, sid, defence.sanitized, answer, use_memory)
+            return {
+                "ok": True,
+                "blocked": False,
+                "answer": answer,
+                "source": "tool_allowlist",
+                "rag_used": bool(rag_context),
+                "memory_used": bool(memory_context),
+            }
+    if ("aal" in q or "average annual" in q) and allowlist.get("aal_kes") is not None:
         answer = f"Discrete AAL is KES {allowlist.get('aal_kes')}."
         _persist_turn(tenant_id, sid, defence.sanitized, answer, use_memory)
         return {
@@ -101,7 +123,7 @@ def answer_query(
             "rag_used": bool(rag_context),
             "memory_used": bool(memory_context),
         }
-    if "tiv" in q and "document" not in q:
+    if "tiv" in q and "document" not in q and allowlist.get("total_tiv_kes") is not None:
         answer = f"Total TIV is KES {allowlist.get('total_tiv_kes')}."
         _persist_turn(tenant_id, sid, defence.sanitized, answer, use_memory)
         return {
