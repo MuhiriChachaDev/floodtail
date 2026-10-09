@@ -12,8 +12,8 @@ export default function LoginPage() {
   const params = useSearchParams();
   const next = params.get("next") || "/home";
 
-  const [email, setEmail] = useState("jane.doe@kenyare.co.ke");
-  const [password, setPassword] = useState("demo");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("Underwriter");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,12 +26,10 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError("");
-    const ok = await login(email, password, role);
+    const errMsg = await login(email, password, role);
     setBusy(false);
-    if (!ok) {
-      setError(
-        "Sign-in failed. Check email/password, and that the API is reachable (NEXT_PUBLIC_API_URL).",
-      );
+    if (errMsg) {
+      setError(errMsg);
       return;
     }
     router.replace(next);
@@ -124,7 +122,9 @@ export default function LoginPage() {
               <p className="text-sm text-rose-300">{error}</p>
             ) : (
               <p className="text-xs text-white/40">
-                Demo sign-in: any email and password work for this prototype.
+                Sign in with your authorised credentials. Session ends on sign-out
+                or after 10 minutes of inactivity. Any role may be selected when
+                credentials match.
               </p>
             )}
 

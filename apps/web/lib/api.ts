@@ -48,12 +48,13 @@ export type TokenResponse = {
   access_token: string;
   token_type: string;
   expires_in_minutes: number;
+  idle_timeout_minutes?: number;
   role: string;
   actor: string;
   tenant_id: string;
 };
 
-/** Exchange email/password for a JWT (required when API ENV != prototype). */
+/** Exchange email/password for a JWT (must match LOGIN_EMAIL / LOGIN_PASSWORD). */
 export async function fetchAccessToken(opts: {
   email: string;
   password: string;
@@ -70,6 +71,21 @@ export async function fetchAccessToken(opts: {
       password: opts.password,
       role: opts.role || "underwriter",
     }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
+
+/** Sliding session: re-issue JWT while the current Bearer token is still valid. */
+export async function refreshAccessToken(): Promise<TokenResponse> {
+  const token = getAccessToken();
+  if (!token) throw new Error("not signed in");
+  const res = await fetchSafe(apiUrl("/v1/auth/refresh"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
   });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();

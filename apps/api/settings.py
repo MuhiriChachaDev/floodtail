@@ -98,7 +98,13 @@ class Settings(BaseSettings):
     keycloak_client_secret: str = "change_me"
     jwt_secret: str = "dev_jwt_secret_change_me"
     jwt_algorithm: str = "HS256"
-    jwt_exp_minutes: int = 15
+    # Align with UI idle timeout (session ends after inactivity).
+    jwt_exp_minutes: int = 10
+
+    # Demo / gate login (email+password from .env). Role is chosen at sign-in.
+    login_email: str = ""
+    login_password: str = ""
+    session_idle_minutes: int = 10
 
     # Security
     aes_key_base64: str = "Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFy"
