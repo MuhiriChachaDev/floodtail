@@ -23,8 +23,9 @@ export function Hero({ place, hasLiveBook }: Props) {
           backgroundImage: "url('/hero/flooded-city.jpg')",
         }}
       />
-      <div className="absolute inset-0 bg-hero-wash" />
-      <div className="absolute inset-0 bg-gradient-to-r from-night-950/85 via-night-950/55 to-transparent" />
+      {/* Lighter wash so the hero photo reads more clearly */}
+      <div className="absolute inset-0 bg-gradient-to-b from-night-950/25 via-night-950/45 to-night-950/80" />
+      <div className="absolute inset-0 bg-gradient-to-r from-night-950/70 via-night-950/35 to-transparent" />
 
       <div className="relative grid gap-6 px-4 py-10 sm:gap-8 sm:px-10 sm:py-12 lg:grid-cols-[1.2fr_0.8fr] lg:py-16">
         <div className="animate-fade-up max-w-xl">
@@ -32,10 +33,10 @@ export function Hero({ place, hasLiveBook }: Props) {
           <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent sm:mt-5 sm:text-xs">
             Smarter insights. Stronger decisions.
           </p>
-          <h1 className="mt-3 font-display text-2xl font-semibold leading-tight text-white sm:text-4xl lg:text-[2.6rem]">
+          <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-white sm:text-5xl lg:text-[3.15rem]">
             Flood Risk Intelligence Platform
           </h1>
-          <p className="mt-4 max-w-lg text-sm text-white/70 sm:text-base">{coverLine}</p>
+          <p className="mt-4 max-w-lg text-base text-white/80 sm:text-lg">{coverLine}</p>
           <Link href="#command-center" className="btn-primary mt-6 w-full sm:mt-7 sm:w-auto">
             Open Command Center →
           </Link>

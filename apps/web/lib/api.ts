@@ -275,8 +275,14 @@ export type CreateRunResponse = {
   ollama_degraded?: boolean;
 };
 
-async function parseError(res: Response): Promise<string> {
+async function parseError(res: Response, requestPath?: string): Promise<string> {
   const text = await res.text();
+  if (res.status === 404 && requestPath?.includes("/assistant/chat")) {
+    return (
+      "Assistant API not found (404). Redeploy the Contabo backend with the latest " +
+      "code — the deployed API is missing POST /v1/assistant/chat."
+    );
+  }
   if (text === "Internal Server Error" || !text) {
     return (
       `Backend error (${res.status}). Is the API running on ${DIRECT_API}? ` +
@@ -382,6 +388,76 @@ export async function searchKnowledge(opts: {
       query: opts.query,
       k: opts.k ?? 6,
       document_id: opts.documentId || null,
+    }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
+
+/** Response from POST /v1/assistant/chat or /v1/runs/{id}/query */
+export type AssistantChatResult = {
+  answer: string;
+  ok?: boolean;
+  blocked?: boolean;
+  source?: string;
+  model?: string;
+  run_id?: string | null;
+  session_id?: string;
+  grounded_on_run?: boolean;
+  rag_used?: boolean;
+  memory_used?: boolean;
+  degraded?: boolean;
+  reason?: string;
+  detail?: unknown;
+};
+
+/** Floating chat / underwriter Q&A via Ollama Qwen + RAG + optional run allowlist. */
+export async function askAssistant(opts: {
+  question: string;
+  runId?: string | null;
+  sessionId?: string;
+  useRag?: boolean;
+  useMemory?: boolean;
+  /** Frozen metrics from localStorage when the server lost the in-memory run. */
+  clientMetrics?: MetricsPayload | null;
+}): Promise<AssistantChatResult> {
+  const path = "/v1/assistant/chat";
+  const res = await fetchSafe(apiUrl(path), {
+    method: "POST",
+    headers: protoHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      question: opts.question,
+      run_id: opts.runId || null,
+      session_id: opts.sessionId || null,
+      use_rag: opts.useRag ?? true,
+      use_memory: opts.useMemory ?? true,
+      client_metrics: opts.clientMetrics ?? null,
+    }),
+  });
+  if (!res.ok) {
+    const msg = await parseError(res, path);
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export async function queryRun(
+  runId: string,
+  opts: {
+    question: string;
+    sessionId?: string;
+    useRag?: boolean;
+    useMemory?: boolean;
+  },
+): Promise<AssistantChatResult> {
+  const res = await fetchSafe(apiUrl(`/v1/runs/${runId}/query`), {
+    method: "POST",
+    headers: protoHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      question: opts.question,
+      session_id: opts.sessionId || null,
+      use_rag: opts.useRag ?? true,
+      use_memory: opts.useMemory ?? true,
     }),
   });
   if (!res.ok) throw new Error(await parseError(res));

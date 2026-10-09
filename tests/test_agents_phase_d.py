@@ -228,6 +228,31 @@ def test_api_run_insight_narrative_query_approve() -> None:
     )
     assert r.status_code == 400
 
+    metrics = body["metrics"]
+
+    # Floating assistant — greeting
+    r = client.post(
+        "/v1/assistant/chat",
+        json={"question": "hi", "force_ollama_down": True},
+    )
+    assert r.status_code == 200, r.text
+    assert "Hello" in r.json()["answer"]
+
+    # Assistant with stale run id + browser-cached metrics
+    reset_store()
+    r = client.post(
+        "/v1/assistant/chat",
+        json={
+            "question": "How many insured houses are in this run?",
+            "run_id": run_id,
+            "client_metrics": metrics,
+            "force_ollama_down": True,
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert "600" in r.json()["answer"]
+    assert r.json().get("grounded_on_run") is True
+
     # Approve
     r = client.post(
         f"/v1/runs/{run_id}/approve",
